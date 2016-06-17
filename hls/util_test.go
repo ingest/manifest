@@ -59,9 +59,42 @@ func TestGenerateMasterPlaylist(t *testing.T) {
 	p := NewMasterPlaylist(7)
 	p.Variants = append(p.Variants, variant)
 	p.SessionData = []*SessionData{&SessionData{DataID: "test", Value: "this is the session data"}}
+	p.SessionKeys = []*Key{&Key{Method: "aes-128"}}
 
 	buf, _ := p.GenerateManifest()
 	//do something with buf
 	fmt.Println(buf.String())
 	// t.Fatal("ERR")
+}
+
+func TestCompatibilityCheck(t *testing.T) {
+	p := NewMediaPlaylist(4)
+	s := &Segment{
+		Key: &Key{
+			Method: "sample-aes",
+		},
+	}
+
+	err := p.checkCompatibility(s)
+
+	if err.Error() != backwardsCompatibilityError(p.Version, "#EXT-X-KEY").Error() {
+		t.Errorf("Error should be %s, but got %s", backwardsCompatibilityError(p.Version, "#EXT-X-KEY"), err)
+	}
+
+	p = NewMediaPlaylist(5)
+	err = p.checkCompatibility(s)
+	if err != nil {
+		t.Errorf("Expected err to be nil, but got %s", err)
+	}
+
+	s = &Segment{
+		Map: &Map{
+			URI: "test",
+		},
+	}
+
+	err = p.checkCompatibility(s)
+	if err.Error() != backwardsCompatibilityError(p.Version, "#EXT-X-MAP").Error() {
+		t.Errorf("Error should be %s, but got %s", backwardsCompatibilityError(p.Version, "#EXT-X-MAP"), err)
+	}
 }

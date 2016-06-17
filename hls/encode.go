@@ -2,6 +2,7 @@ package hls
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 )
 
@@ -16,6 +17,14 @@ func (p *MasterPlaylist) GenerateManifest() (*bytes.Buffer, error) {
 	if p.SessionData != nil {
 		for _, sd := range p.SessionData {
 			if err := sd.writeSessionData(buf); err != nil {
+				return buf, err
+			}
+		}
+	}
+	//write session keys tags if enabled
+	if p.SessionKeys != nil {
+		for _, sk := range p.SessionKeys {
+			if err := sk.writeKey(buf); err != nil {
 				return buf, err
 			}
 		}
@@ -55,7 +64,9 @@ func (p *MediaPlaylist) GenerateManifest() (*bytes.Buffer, error) {
 	//write header tags
 	writeHeader(p.Version, buf)
 	//write Target Duration tag
-	p.writeTargetDuration(buf)
+	if err := p.writeTargetDuration(buf); err != nil {
+		return buf, err
+	}
 	//write Media Sequence tag if enabled
 	p.writeMediaSequence(buf)
 	//write Independent Segment tag if enabled
@@ -69,11 +80,13 @@ func (p *MediaPlaylist) GenerateManifest() (*bytes.Buffer, error) {
 	//write Allow Cache tag if enabled
 	p.writeAllowCache(buf)
 	//write I-Frames Only tag if enabled and version > = 4
-	if p.IFramesOnly && p.Version < 4 {
-		return buf, backwardsCompatibilityError(p.Version, "#EXT-X-I-FRAMES-ONLY")
+	if p.IFramesOnly {
+		if p.Version < 4 {
+			return buf, backwardsCompatibilityError(p.Version, "#EXT-X-I-FRAMES-ONLY")
+		}
+		p.writeIFramesOnly(buf)
 	}
-	p.writeIFramesOnly(buf)
-
+	//write segment tags
 	if p.Segments != nil {
 		for _, segment := range p.Segments {
 			if err := p.checkCompatibility(segment); err != nil {
@@ -81,6 +94,8 @@ func (p *MediaPlaylist) GenerateManifest() (*bytes.Buffer, error) {
 			}
 			segment.writeSegmentTags(buf)
 		}
+	} else {
+		return buf, errors.New("MediaPlaylist must have at least one Segment")
 	}
 	//write End List tag if enabled
 	p.writeEndList(buf)

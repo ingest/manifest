@@ -72,9 +72,9 @@ type DateRange struct {
 	Class            string    //Optional. Specifies some set of attributes and their associated value semantics.
 	StartDate        time.Time //Required.
 	EndDate          time.Time //Optional.
-	Duration         float64   //Optional. If both EndDate and Duration present, check EndDate equal to Duration + StartDate
-	PlannedDuration  float64   //Optional. Expected duration.
-	XClientAttribute string    //Optional. Namespace reserved for client-defined att. eg. X-COM-EXAMPLE="example".
+	Duration         *float64  //Optional. If both EndDate and Duration present, check EndDate equal to Duration + StartDate
+	PlannedDuration  *float64  //Optional. Expected duration.
+	XClientAttribute []string  //Optional. Namespace reserved for client-defined att. eg. X-COM-EXAMPLE="example".
 	EndOnNext        bool      //Optional. Possible Value: YES. Indicates the end of the current date range is equal to the start date of the following range of the same class.
 	//If present, a Class att is required, Duration and EndDate MUST NOT be present
 	//SCTE35         *SCTE35 -> TODO: Support for SCTE35
@@ -94,6 +94,7 @@ type MasterPlaylist struct {
 	Version             int  //Represents tag #EXT-X-VERSION. MUST be present.
 	Variants            []*Variant
 	SessionData         []*SessionData
+	SessionKeys         []*Key
 	IndependentSegments bool //Represents tag #EXT-X-INDEPENDENT-SEGMENTS. Applies to every Media Segment of every Media Playlist referenced. V6 or higher.
 	StartPoint          *StartPoint
 }

@@ -22,6 +22,10 @@ func backwardsCompatibilityError(version int, tag string) error {
 	return fmt.Errorf("Backwards compatibility error on tag %s with version %d", tag, version)
 }
 
+func attributeNotSetError(tag string, attribute string) error {
+	return fmt.Errorf(tag + " attribute " + attribute + " must be set.")
+}
+
 //writeHeader sets the initial tags for both Media and Master Playlists files
 func writeHeader(version int, buf *bytes.Buffer) {
 	buf.WriteString("#EXTM3U\n#EXT-X-VERSION:")
@@ -39,9 +43,9 @@ func writeIndependentSegment(isIndSeg bool, buf *bytes.Buffer) {
 //writeStartPoint sets the #EXT-X-START tag on Media and Master Playlist file
 func writeStartPoint(sp *StartPoint, buf *bytes.Buffer) error {
 	if sp != nil {
-		attributes := make([]string, 0, 2)
+		var attributes []string
 		if sp.TimeOffset == float64(0) {
-			return errors.New("StartPoint must have attribute TIME-OFFSET set.")
+			return attributeNotSetError("EXT-X-START", "TIME-OFFSET")
 		}
 		attributes = append(attributes, fmt.Sprintf("TIME-OFFSET=%s", strconv.FormatFloat(sp.TimeOffset, 'f', 3, 32)))
 		if sp.Precise {
@@ -56,22 +60,22 @@ func writeStartPoint(sp *StartPoint, buf *bytes.Buffer) error {
 func (s *SessionData) writeSessionData(buf *bytes.Buffer) error {
 	if s != nil {
 		//Initiate a slice of string of size 4 (number of fields in SessionData)
-		attributes := make([]string, 0, 4)
+		var attributes []string
 
 		if s.DataID != "" {
 			attributes = append(attributes, fmt.Sprintf("DATA-ID=\"%s\"", s.DataID))
 		} else {
-			return errors.New("SessionData attribute DATA-ID must be set.")
+			return attributeNotSetError("EXT-X-SESSION-DATA", "DATA-ID")
 		}
 
 		if s.Value != "" && s.URI != "" {
-			return errors.New("SessionData must have attributes URI or VALUE, not both.")
+			return errors.New("EXT-X-SESSION-DATA must have attributes URI or VALUE, not both.")
 		} else if s.Value != "" {
 			attributes = append(attributes, fmt.Sprintf("VALUE=\"%s\"", s.Value))
 		} else if s.URI != "" {
 			attributes = append(attributes, fmt.Sprintf("URI=\"%s\"", s.URI))
 		} else {
-			return errors.New("SessionData must have either URI or VALUE attributes set.")
+			return errors.New("EXT-X-SESSION-DATA must have either URI or VALUE attributes set.")
 		}
 
 		if s.Language != "" {
@@ -87,22 +91,22 @@ func (s *SessionData) writeSessionData(buf *bytes.Buffer) error {
 func (r *Rendition) writeXMedia(buf *bytes.Buffer) error {
 	if r != nil {
 		//Initiate a slice of string of size 11 (number of fields in Rendition)
-		attributes := make([]string, 0, 11)
+		var attributes []string
 
 		if r.Type != "" {
 			attributes = append(attributes, fmt.Sprintf("TYPE=%s", r.Type))
 		} else {
-			return errors.New("Rendition must have attribute TYPE set.")
+			return attributeNotSetError("EXT-X-MEDIA", "TYPE")
 		}
 		if r.GroupID != "" {
 			attributes = append(attributes, fmt.Sprintf("GROUP-ID=\"%s\"", r.GroupID))
 		} else {
-			return errors.New("Rendition must have attribute GROUP-ID set.")
+			return attributeNotSetError("EXT-X-MEDIA", "GROUP-ID")
 		}
 		if r.Name != "" {
 			attributes = append(attributes, fmt.Sprintf("NAME=\"%s\"", r.Name))
 		} else {
-			return errors.New("Rendition must have attribute NAME set.")
+			return attributeNotSetError("EXT-X-MEDIA", "NAME")
 		}
 		if r.Language != "" {
 			attributes = append(attributes, fmt.Sprintf("LANGUAGE=\"%s\"", r.Language))
@@ -140,7 +144,7 @@ func isValidInstreamID(instream string) bool {
 //writeStreamInf sets the EXT-X-STREAM-INF or EXT-X-I-FRAME-STREAM-INF tag on Master Playlist file
 func (v *Variant) writeStreamInf(version int, buf *bytes.Buffer) {
 	if v != nil {
-		attributes := make([]string, 0, 11)
+		var attributes []string
 
 		if version < 6 && v.ProgramID > 0 {
 			attributes = append(attributes, fmt.Sprintf("PROGRAM-ID=%s", strconv.FormatInt(v.ProgramID, 10)))
@@ -183,10 +187,13 @@ func (v *Variant) writeStreamInf(version int, buf *bytes.Buffer) {
 	}
 }
 
-func (p *MediaPlaylist) writeTargetDuration(buf *bytes.Buffer) {
+func (p *MediaPlaylist) writeTargetDuration(buf *bytes.Buffer) error {
 	if p.TargetDuration > 0 {
 		buf.WriteString(fmt.Sprintf("#EXT-X-TARGETDURATION:%s\n", strconv.Itoa(p.TargetDuration)))
+	} else {
+		return attributeNotSetError("EXT-X-TARGETDURATION", "")
 	}
+	return nil
 }
 
 func (p *MediaPlaylist) writeMediaSequence(buf *bytes.Buffer) {
@@ -215,25 +222,162 @@ func (p *MediaPlaylist) writePlaylistType(buf *bytes.Buffer) {
 
 func (p *MediaPlaylist) writeIFramesOnly(buf *bytes.Buffer) {
 	if p.IFramesOnly {
-		buf.WriteString("#EXT-X-I-FRAMES-ONLY")
+		buf.WriteString("#EXT-X-I-FRAMES-ONLY\n")
 	}
 }
 
 func (s *Segment) writeSegmentTags(buf *bytes.Buffer) error {
 	if s != nil {
-		if s.Inf != nil && s.Inf.Duration > float64(0) {
-			buf.WriteString(fmt.Sprintf("#EXTINF:%s,%s", strconv.FormatFloat(s.Inf.Duration, 'f', 3, 32), s.Inf.Title))
-		} else {
-			return errors.New("Segment must have EXTINF duration set")
+		//TODO:confirm if only one key per segment possible
+		if err := s.Key.writeKey(buf); err != nil {
+			return err
 		}
 
+		if err := s.Map.writeMap(buf); err != nil {
+			return err
+		}
+
+		if !s.ProgramDateTime.IsZero() {
+			buf.WriteString(fmt.Sprintf("#EXT-X-PROGRAM-DATE-TIME:%s\n", s.ProgramDateTime.String()))
+		}
+
+		if s.Discontinuity {
+			buf.WriteString("#EXT-X-DISCONTINUITY\n")
+		}
+
+		if s.Inf != nil && s.Inf.Duration > float64(0) {
+			buf.WriteString(fmt.Sprintf("#EXTINF:%s,%s\n", strconv.FormatFloat(s.Inf.Duration, 'f', 3, 32), s.Inf.Title))
+		} else {
+			return attributeNotSetError("EXTINF", "DURATION")
+		}
+
+		if s.Byterange != nil {
+			buf.WriteString(fmt.Sprintf("#EXT-X-BYTERANGE:%s", strconv.FormatInt(s.Byterange.Length, 10)))
+			if s.Byterange.Offset > 0 {
+				buf.WriteString("@" + strconv.FormatInt(s.Byterange.Offset, 10))
+			}
+			buf.WriteRune('\n')
+		}
+
+		//write DateRange
+
+		if s.URI != "" {
+			buf.WriteString(s.URI)
+			buf.WriteRune('\n')
+		} else {
+			return attributeNotSetError("Segment", "URI")
+		}
+	}
+	return nil
+}
+
+func (k *Key) writeKey(buf *bytes.Buffer) error {
+	if k != nil {
+		var attributes []string
+
+		if k.Method != "" && isValidMethod(k.IsSession, strings.ToUpper(k.Method)) {
+			attributes = append(attributes, fmt.Sprintf("METHOD=%s", k.Method))
+		} else {
+			return attributeNotSetError("KEY", "METHOD")
+		}
+		if k.URI != "" && strings.ToUpper(k.Method) != "NONE" {
+			attributes = append(attributes, fmt.Sprintf("URI=\"%s\"", k.URI))
+		} else {
+			return attributeNotSetError("EXT-X-KEY", "URI")
+		}
+		if k.IV != "" {
+			attributes = append(attributes, fmt.Sprintf("IV=%s", k.IV))
+		}
+		if k.Keyformat != "" {
+			attributes = append(attributes, fmt.Sprintf("KEYFORMAT=\"%s\"", k.Keyformat))
+		}
+		if k.Keyformatversions != "" {
+			attributes = append(attributes, fmt.Sprintf("KEYFORMATVERSIONS=\"%s\"", k.Keyformatversions))
+		}
+		if k.IsSession {
+			buf.WriteString(fmt.Sprintf("#EXT-X-SESSION-KEY:%s", strings.Join(attributes, ",")))
+		} else {
+			buf.WriteString(fmt.Sprintf("#EXT-X-KEY:%s", strings.Join(attributes, ",")))
+		}
+	}
+	return nil
+}
+
+//Session Key Method can't be NONE
+func isValidMethod(isSession bool, method string) bool {
+	return (method == "AES-128" || method == "SAMPLE-AES") || (!isSession && method == "NONE")
+}
+
+func (m *Map) writeMap(buf *bytes.Buffer) error {
+	if m != nil {
+		var attributes []string
+		if m.URI != "" {
+			attributes = append(attributes, fmt.Sprintf("URI=\"%s\"", m.URI))
+		} else {
+			return attributeNotSetError("EXT-X-MAP", "URI")
+		}
+		//TODO:look if offset is included when = 0
+		if m.Byterange != nil {
+			attributes = append(attributes,
+				fmt.Sprintf("BYTERANGE=\"%s@%s\"",
+					strconv.FormatInt(m.Byterange.Length, 10),
+					strconv.FormatInt(m.Byterange.Offset, 10)))
+		}
+
+		buf.WriteString(fmt.Sprintf("#EXT-X-MAP:%s", strings.Join(attributes, ",")))
+	}
+	return nil
+}
+
+func (d *DateRange) writeDateRange(buf *bytes.Buffer) error {
+	if d != nil {
+		var attributes []string
+
+		if d.ID != "" {
+			attributes = append(attributes, fmt.Sprintf("ID=\"%s\"", d.ID))
+		} else {
+			return attributeNotSetError("EXT-X-DATERANGE", "ID")
+		}
+		if d.Class != "" {
+			attributes = append(attributes, fmt.Sprintf("CLASS=\"%s\"", d.Class))
+		}
+		if !d.StartDate.IsZero() {
+			attributes = append(attributes, fmt.Sprintf("START-DATE=\"%s\"", d.StartDate.String()))
+		} else {
+			return attributeNotSetError("EXT-X-DATERANGE", "START-DATE")
+		}
+		if !d.EndDate.IsZero() {
+			if d.EndDate.Before(d.StartDate) {
+				return errors.New("DateRange attribute EndDate must be equal or later than StartDate")
+			}
+			attributes = append(attributes, fmt.Sprintf("END-DATE=\"%s\"", d.EndDate.String()))
+		}
+		if d.Duration != nil && *d.Duration >= float64(0) {
+			attributes = append(attributes, fmt.Sprintf("DURATION=%s", strconv.FormatFloat(*d.Duration, 'f', 3, 32)))
+		}
+		if d.PlannedDuration != nil && *d.PlannedDuration >= float64(0) {
+			attributes = append(attributes, fmt.Sprintf("PLANNED-DURATION=%s", strconv.FormatFloat(*d.PlannedDuration, 'f', 3, 32)))
+		}
+		if d.XClientAttribute != nil {
+			for _, x := range d.XClientAttribute {
+				attributes = append(attributes, x)
+			}
+		}
+
+		//TODO:SCET35
+
+		if d.EndOnNext {
+			attributes = append(attributes, "END-ON-NEXT=YES")
+		}
+
+		buf.WriteString(fmt.Sprintf("#EXT-X-DATERANGE:%s\n", strings.Join(attributes, ",")))
 	}
 	return nil
 }
 
 func (p *MediaPlaylist) writeEndList(buf *bytes.Buffer) {
 	if p.EndList {
-		buf.WriteString("#EXT-X-ENDLIST")
+		buf.WriteString("#EXT-X-ENDLIST\n")
 	}
 }
 
@@ -241,7 +385,7 @@ func (p *MediaPlaylist) writeEndList(buf *bytes.Buffer) {
 func (p *MediaPlaylist) checkCompatibility(s *Segment) error {
 	if s != nil {
 		if s.Key != nil {
-			if (s.Key.Method == "SAMPLE-AES" || s.Key.Keyformat != "" || s.Key.Keyformatversions != "") && p.Version < 5 {
+			if (strings.ToUpper(s.Key.Method) == "SAMPLE-AES" || s.Key.Keyformat != "" || s.Key.Keyformatversions != "") && p.Version < 5 {
 				return backwardsCompatibilityError(p.Version, "#EXT-X-KEY")
 			}
 		}
