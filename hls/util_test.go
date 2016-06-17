@@ -26,7 +26,7 @@ func TestWriteXMedia(t *testing.T) {
 
 func TestWriteStreamInf(t *testing.T) {
 	variant := &Variant{
-		IsIframe:   false,
+		IsIframe:   true,
 		URI:        "http://test.com",
 		Bandwidth:  234000,
 		Resolution: "230x400",
