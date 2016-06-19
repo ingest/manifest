@@ -18,9 +18,10 @@ func TestWriteXMedia(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 
-	rendition.writeXMedia(buf)
+	err := rendition.writeXMedia(buf)
 	//do something with buf
-	// fmt.Println(buf.String())
+	fmt.Println(err)
+	fmt.Println(buf.String())
 	// t.Fatalf("ERR")
 }
 
@@ -33,9 +34,10 @@ func TestWriteStreamInf(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	variant.writeStreamInf(7, buf)
+	err := variant.writeStreamInf(7, buf)
 	//do something with buf
-	// fmt.Println(buf.String())
+	fmt.Println(err)
+	fmt.Println(buf.String())
 	// t.Fatal("ERR")
 }
 
@@ -48,23 +50,47 @@ func TestGenerateMasterPlaylist(t *testing.T) {
 		Default:  true,
 		URI:      "http://test.com",
 	}
+	rend := &Rendition{
+		Type:     "AUDIO",
+		GroupID:  "Testing",
+		Name:     "Another test",
+		Language: "English",
+		Default:  false,
+	}
 	variant := &Variant{
-		Renditions: []*Rendition{rendition},
+		Renditions: []*Rendition{rendition, rend},
 		IsIframe:   false,
 		URI:        "http://test.com",
 		Bandwidth:  234000,
 		Resolution: "230x400",
+		Codecs:     "These codescs",
+	}
+
+	rend3 := &Rendition{
+		Type:     "VIDEO",
+		GroupID:  "Test",
+		Name:     "Bla",
+		Language: "Portuguese",
+	}
+
+	variant2 := &Variant{
+		Renditions: []*Rendition{rend3},
+		IsIframe:   true,
+		URI:        "thistest.com",
+		Bandwidth:  145000,
 	}
 
 	p := NewMasterPlaylist(7)
 	p.Variants = append(p.Variants, variant)
+	p.Variants = append(p.Variants, variant2)
 	p.SessionData = []*SessionData{&SessionData{DataID: "test", Value: "this is the session data"}}
-	p.SessionKeys = []*Key{&Key{Method: "aes-128"}}
-
-	buf, _ := p.GenerateManifest()
+	p.SessionKeys = []*Key{&Key{IsSession: true, Method: "aes-128", URI: "key url"}}
+	p.IndependentSegments = true
+	buf, err := p.GenerateManifest()
 	//do something with buf
 	fmt.Println(buf.String())
-	// t.Fatal("ERR")
+	fmt.Println(err)
+	//t.Fatal("ERR")
 }
 
 func TestCompatibilityCheck(t *testing.T) {

@@ -27,10 +27,14 @@ func attributeNotSetError(tag string, attribute string) error {
 }
 
 //writeHeader sets the initial tags for both Media and Master Playlists files
-func writeHeader(version int, buf *bytes.Buffer) {
-	buf.WriteString("#EXTM3U\n#EXT-X-VERSION:")
-	buf.WriteString(strconv.Itoa(version))
-	buf.WriteRune('\n')
+func writeHeader(version int, buf *bytes.Buffer) error {
+	if version > 0 {
+		buf.WriteString("#EXTM3U\n#EXT-X-VERSION:")
+		buf.WriteString(strconv.Itoa(version))
+		buf.WriteRune('\n')
+		return nil
+	}
+	return attributeNotSetError("Playlist", "Version")
 }
 
 //writeIndependentSegment sets the #EXT-X-INDEPENDENT-SEGMENTS tag on Media and Master Playlist file
@@ -126,6 +130,7 @@ func (r *Rendition) writeXMedia(buf *bytes.Buffer) error {
 		bufWriteString(buf, r.Characteristics, fmt.Sprintf("CHARACTERISTICS=\"%s\"", r.Characteristics))
 		bufWriteString(buf, r.URI, fmt.Sprintf(",URI=\"%s\"", r.URI))
 		buf.WriteRune('\n')
+
 	}
 	return nil
 }
@@ -199,10 +204,14 @@ func (p *MediaPlaylist) writePlaylistType(buf *bytes.Buffer) {
 	}
 }
 
-func (p *MediaPlaylist) writeIFramesOnly(buf *bytes.Buffer) {
+func (p *MediaPlaylist) writeIFramesOnly(buf *bytes.Buffer) error {
 	if p.IFramesOnly {
+		if p.Version < 4 {
+			return backwardsCompatibilityError(p.Version, "#EXT-X-I-FRAMES-ONLY")
+		}
 		buf.WriteString("#EXT-X-I-FRAMES-ONLY\n")
 	}
+	return nil
 }
 
 func (s *Segment) writeSegmentTags(buf *bytes.Buffer) error {
@@ -267,7 +276,7 @@ func (k *Key) writeKey(buf *bytes.Buffer) error {
 		bufWriteString(buf, k.IV, fmt.Sprintf(",IV=%s", k.IV))
 		bufWriteString(buf, k.Keyformat, fmt.Sprintf("KEYFORMAT=\"%s\"", k.Keyformat))
 		bufWriteString(buf, k.Keyformatversions, fmt.Sprintf("KEYFORMATVERSIONS=\"%s\"", k.Keyformatversions))
-
+		buf.WriteRune('\n')
 	}
 	return nil
 }

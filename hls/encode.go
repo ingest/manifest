@@ -11,7 +11,9 @@ func (p *MasterPlaylist) GenerateManifest() (*bytes.Buffer, error) {
 	buf := new(bytes.Buffer)
 
 	//Write header tags
-	writeHeader(p.Version, buf)
+	if err := writeHeader(p.Version, buf); err != nil {
+		return buf, err
+	}
 
 	//Write Session Data tags if enabled
 	if p.SessionData != nil {
@@ -47,10 +49,14 @@ func (p *MasterPlaylist) GenerateManifest() (*bytes.Buffer, error) {
 					if strings.HasPrefix(rendition.InstreamID, "SERVICE") && p.Version < 7 {
 						return buf, backwardsCompatibilityError(p.Version, "#EXT-X-MEDIA")
 					}
-					rendition.writeXMedia(buf)
+					if err := rendition.writeXMedia(buf); err != nil {
+						return buf, err
+					}
 				}
 			}
-			variant.writeStreamInf(p.Version, buf)
+			if err := variant.writeStreamInf(p.Version, buf); err != nil {
+				return buf, err
+			}
 		}
 	}
 
@@ -62,7 +68,9 @@ func (p *MediaPlaylist) GenerateManifest() (*bytes.Buffer, error) {
 	buf := new(bytes.Buffer)
 
 	//write header tags
-	writeHeader(p.Version, buf)
+	if err := writeHeader(p.Version, buf); err != nil {
+		return buf, err
+	}
 	//write Target Duration tag
 	if err := p.writeTargetDuration(buf); err != nil {
 		return buf, err
@@ -79,20 +87,20 @@ func (p *MediaPlaylist) GenerateManifest() (*bytes.Buffer, error) {
 	p.writePlaylistType(buf)
 	//write Allow Cache tag if enabled
 	p.writeAllowCache(buf)
-	//write I-Frames Only tag if enabled and version > = 4
-	if p.IFramesOnly {
-		if p.Version < 4 {
-			return buf, backwardsCompatibilityError(p.Version, "#EXT-X-I-FRAMES-ONLY")
-		}
-		p.writeIFramesOnly(buf)
+	//write I-Frames Only if enabled
+	if err := p.writeIFramesOnly(buf); err != nil {
+		return buf, err
 	}
+
 	//write segment tags
 	if p.Segments != nil {
 		for _, segment := range p.Segments {
 			if err := p.checkCompatibility(segment); err != nil {
 				return buf, err
 			}
-			segment.writeSegmentTags(buf)
+			if err := segment.writeSegmentTags(buf); err != nil {
+				return buf, err
+			}
 		}
 	} else {
 		return buf, errors.New("MediaPlaylist must have at least one Segment")
