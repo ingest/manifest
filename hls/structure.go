@@ -1,6 +1,16 @@
-package m3u8
+package hls
 
 import "time"
+
+const (
+	sub    = "SUBTITLES"
+	aud    = "AUDIO"
+	vid    = "VIDEO"
+	cc     = "CLOSED-CAPTIONS"
+	aes    = "AES-128"
+	none   = "NONE"
+	sample = "SAMPLE-AES"
+)
 
 //MediaPlaylist represents a Media Playlist object and its tags.
 //There MUST NOT be more than one tag per media playlist
@@ -72,10 +82,10 @@ type DateRange struct {
 	Class            string    //Optional. Specifies some set of attributes and their associated value semantics.
 	StartDate        time.Time //Required.
 	EndDate          time.Time //Optional.
-	Duration         float64   //Optional. If both EndDate and Duration present, check EndDate equal to Duration + StartDate
-	PlannedDuration  float64   //Optional. Expected duration.
-	XClientAttribute string    //Optional. Namespace reserved for client-defined att. eg. X-COM-EXAMPLE="example".
-	EndOnNext        string    //Optional. Possible Value: YES. Indicates the end of the current date range is equal to the start date of the following range of the same class.
+	Duration         *float64  //Optional. If both EndDate and Duration present, check EndDate equal to Duration + StartDate
+	PlannedDuration  *float64  //Optional. Expected duration.
+	XClientAttribute []string  //Optional. Namespace reserved for client-defined att. eg. X-COM-EXAMPLE="example".
+	EndOnNext        bool      //Optional. Possible Value: YES. Indicates the end of the current date range is equal to the start date of the following range of the same class.
 	//If present, a Class att is required, Duration and EndDate MUST NOT be present
 	//SCTE35         *SCTE35 -> TODO: Support for SCTE35
 }
@@ -93,7 +103,8 @@ type MasterPlaylist struct {
 	M3U                 bool //Represents tag #EXTM3U. Indicates if present. MUST be present.
 	Version             int  //Represents tag #EXT-X-VERSION. MUST be present.
 	Variants            []*Variant
-	SessionData         *SessionData
+	SessionData         []*SessionData
+	SessionKeys         []*Key
 	IndependentSegments bool //Represents tag #EXT-X-INDEPENDENT-SEGMENTS. Applies to every Media Segment of every Media Playlist referenced. V6 or higher.
 	StartPoint          *StartPoint
 }
@@ -104,11 +115,11 @@ type MasterPlaylist struct {
 //TODO: check specs for more requirements.
 type Variant struct {
 	Renditions     []*Rendition
-	IsIframe       bool   //Identifies if #EXT-X-STREAM-INF or #EXT-X-I-FRAME-STREAM-INF
-	URI            string //If #EXT-X-STREAM-INF, URI line MUST follow the tag. If #EXT-X-I-FRAME-STREAM-INF, URI MUST appear as an attribute of the tag.
-	ProgramID      int
-	Bandwith       int     //Required. Peak segment bit rate.
-	AvgBandwith    int     //Optional. Average segment bit rate of the Variant Stream.
+	IsIframe       bool    //Identifies if #EXT-X-STREAM-INF or #EXT-X-I-FRAME-STREAM-INF
+	URI            string  //If #EXT-X-STREAM-INF, URI line MUST follow the tag. If #EXT-X-I-FRAME-STREAM-INF, URI MUST appear as an attribute of the tag.
+	ProgramID      int64   //Removed on Version 6
+	Bandwidth      int64   //Required. Peak segment bit rate.
+	AvgBandwidth   int64   //Optional. Average segment bit rate of the Variant Stream.
 	Codecs         string  //Optional. Comma-separated list of formats. Valid formats are the ones specified in RFC6381. SHOULD be present.
 	Resolution     string  //Optional. Optimal pixel resolution.
 	FrameRate      float64 //Optional. Maximum frame rate. Optional. SHOULD be included if any video exceeds 30 frames per second.
@@ -134,9 +145,9 @@ type Rendition struct {
 	Language        string //Optional. Identifies the primary language used in the rendition. Must be one of the standard tags RFC5646
 	AssocLanguage   string //Optional. Language tag RFC5646
 	Name            string //Required. Description of the rendition. SHOULD be written in the same language as Language
-	Default         string //Possible Values: YES, NO. Optional. Defines if rendition should be played by client if user doesn't choose a rendition. Default: NO
-	AutoSelect      string //Possible Values: YES, NO. Optional. Client MAY choose this rendition if user doesn't choose one. if present, MUST be YES if Default is present and is YES. Default: NO.
-	Forced          string //Possible Values: YES, NO. Optional. MUST NOT be present unless Type is SUBTITLES. Default: NO.
+	Default         bool   //Possible Values: YES, NO. Optional. Defines if rendition should be played by client if user doesn't choose a rendition. Default: NO
+	AutoSelect      bool   //Possible Values: YES, NO. Optional. Client MAY choose this rendition if user doesn't choose one. if present, MUST be YES if Default is present and is YES. Default: NO.
+	Forced          bool   //Possible Values: YES, NO. Optional. MUST NOT be present unless Type is SUBTITLES. Default: NO.
 	InstreamID      string //Specifies a rendition within the Media Playlist. MUST NOT be present unless Type is CLOSED-CAPTIONS. Possible Values: CC1, CC2, CC3, CC4, or SERVICEn where n is int between 1 - 63
 	Characteristics string //Optional. One or more Uniform Type Indentifiers separated by comma. Each UTI indicates an individual characteristic of the Rendition.
 }
@@ -153,5 +164,5 @@ type SessionData struct {
 //StartPoint represents tag #EXT-X-START. Indicates preferred point at which to start playing a Playlist.
 type StartPoint struct {
 	TimeOffset float64 //Required. If positive, time offset from the beginning of the Playlist. If negative, time offset from the end of the last segment of the playlist
-	Precise    string  //Possible Values: YES or NO.
+	Precise    bool    //Possible Values: YES or NO.
 }
