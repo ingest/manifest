@@ -1,12 +1,9 @@
 package m3u8
 
-import (
-	"bytes"
-	"io"
-)
+import "io"
 
 //ManifestParser is the interface for the Generate and Read manifest methods
 type ManifestParser interface {
-	GenerateManifest() (*bytes.Buffer, error)
+	GenerateManifest() (io.Reader, error)
 	ReadManifest(reader io.Reader) error
 }

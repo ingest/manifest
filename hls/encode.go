@@ -3,23 +3,24 @@ package hls
 import (
 	"bytes"
 	"errors"
+	"io"
 	"strings"
 )
 
 //GenerateManifest writes a Master Playlist file
-func (p *MasterPlaylist) GenerateManifest() (*bytes.Buffer, error) {
-	buf := new(bytes.Buffer)
+func (p *MasterPlaylist) GenerateManifest() (io.Reader, error) {
+	buf := NewBufWriter()
 
 	//Write header tags
 	if err := writeHeader(p.Version, buf); err != nil {
-		return buf, err
+		return nil, err
 	}
 
 	//Write Session Data tags if enabled
 	if p.SessionData != nil {
 		for _, sd := range p.SessionData {
 			if err := sd.writeSessionData(buf); err != nil {
-				return buf, err
+				return nil, err
 			}
 		}
 	}
@@ -27,7 +28,7 @@ func (p *MasterPlaylist) GenerateManifest() (*bytes.Buffer, error) {
 	if p.SessionKeys != nil {
 		for _, sk := range p.SessionKeys {
 			if err := sk.writeKey(buf); err != nil {
-				return buf, err
+				return nil, err
 			}
 		}
 	}
@@ -37,7 +38,7 @@ func (p *MasterPlaylist) GenerateManifest() (*bytes.Buffer, error) {
 
 	//write Start tag if enabled
 	if err := writeStartPoint(p.StartPoint, buf); err != nil {
-		return buf, err
+		return nil, err
 	}
 
 	//For every Variant, write rendition and variant tags if enabled
@@ -46,34 +47,34 @@ func (p *MasterPlaylist) GenerateManifest() (*bytes.Buffer, error) {
 			if variant.Renditions != nil {
 				for _, rendition := range variant.Renditions {
 					//Check backwards compatibility issue before continuing
-					if strings.HasPrefix(rendition.InstreamID, "SERVICE") && p.Version < 7 {
-						return buf, backwardsCompatibilityError(p.Version, "#EXT-X-MEDIA")
+					if strings.HasPrefix(strings.ToUpper(rendition.InstreamID), "SERVICE") && p.Version < 7 {
+						return nil, backwardsCompatibilityError(p.Version, "#EXT-X-MEDIA")
 					}
 					if err := rendition.writeXMedia(buf); err != nil {
-						return buf, err
+						return nil, err
 					}
 				}
 			}
 			if err := variant.writeStreamInf(p.Version, buf); err != nil {
-				return buf, err
+				return nil, err
 			}
 		}
 	}
 
-	return buf, nil
+	return bytes.NewReader(buf.buf.Bytes()), buf.err
 }
 
 //GenerateManifest writes a Media Playlist file
-func (p *MediaPlaylist) GenerateManifest() (*bytes.Buffer, error) {
-	buf := new(bytes.Buffer)
+func (p *MediaPlaylist) GenerateManifest() (io.Reader, error) {
+	buf := NewBufWriter()
 
 	//write header tags
 	if err := writeHeader(p.Version, buf); err != nil {
-		return buf, err
+		return nil, err
 	}
 	//write Target Duration tag
 	if err := p.writeTargetDuration(buf); err != nil {
-		return buf, err
+		return nil, err
 	}
 	//write Media Sequence tag if enabled
 	p.writeMediaSequence(buf)
@@ -89,24 +90,24 @@ func (p *MediaPlaylist) GenerateManifest() (*bytes.Buffer, error) {
 	p.writeAllowCache(buf)
 	//write I-Frames Only if enabled
 	if err := p.writeIFramesOnly(buf); err != nil {
-		return buf, err
+		return nil, err
 	}
 
 	//write segment tags
 	if p.Segments != nil {
 		for _, segment := range p.Segments {
 			if err := p.checkCompatibility(segment); err != nil {
-				return buf, err
+				return nil, err
 			}
 			if err := segment.writeSegmentTags(buf); err != nil {
-				return buf, err
+				return nil, err
 			}
 		}
 	} else {
-		return buf, errors.New("MediaPlaylist must have at least one Segment")
+		return nil, errors.New("MediaPlaylist must have at least one Segment")
 	}
 	//write End List tag if enabled
 	p.writeEndList(buf)
 
-	return buf, nil
+	return bytes.NewReader(buf.buf.Bytes()), buf.err
 }

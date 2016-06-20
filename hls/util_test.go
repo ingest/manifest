@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestWriteXMedia(t *testing.T) {
@@ -16,12 +17,12 @@ func TestWriteXMedia(t *testing.T) {
 		URI:      "http://test.com",
 	}
 
-	buf := new(bytes.Buffer)
+	buf := NewBufWriter()
 
 	err := rendition.writeXMedia(buf)
 	//do something with buf
 	fmt.Println(err)
-	fmt.Println(buf.String())
+	fmt.Println(buf.buf.String())
 	// t.Fatalf("ERR")
 }
 
@@ -33,11 +34,11 @@ func TestWriteStreamInf(t *testing.T) {
 		Resolution: "230x400",
 	}
 
-	buf := new(bytes.Buffer)
+	buf := NewBufWriter()
 	err := variant.writeStreamInf(7, buf)
 	//do something with buf
 	fmt.Println(err)
-	fmt.Println(buf.String())
+	fmt.Println(buf.buf.String())
 	// t.Fatal("ERR")
 }
 
@@ -75,12 +76,12 @@ func TestGenerateMasterPlaylist(t *testing.T) {
 
 	variant2 := &Variant{
 		Renditions: []*Rendition{rend3},
-		IsIframe:   true,
+		IsIframe:   false,
 		URI:        "thistest.com",
 		Bandwidth:  145000,
 	}
 
-	p := NewMasterPlaylist(7)
+	p := NewMasterPlaylist(5)
 	p.Variants = append(p.Variants, variant)
 	p.Variants = append(p.Variants, variant2)
 	p.SessionData = []*SessionData{&SessionData{DataID: "test", Value: "this is the session data"}}
@@ -88,9 +89,30 @@ func TestGenerateMasterPlaylist(t *testing.T) {
 	p.IndependentSegments = true
 	buf, err := p.GenerateManifest()
 	//do something with buf
-	fmt.Println(buf.String())
+	b := new(bytes.Buffer)
+	b.ReadFrom(buf)
+	fmt.Println(b.String())
 	fmt.Println(err)
 	//t.Fatal("ERR")
+}
+
+func TestCreateMediaPlaylist(t *testing.T) {
+	sd, _ := time.Parse(time.RFC3339, "2012-11-01T22:08:41+00:00")
+
+	seg := &Segment{
+		URI:       "segment.com",
+		Inf:       &Inf{Duration: 9.052},
+		Byterange: &Byterange{Length: 6000, Offset: 7000},
+		Key:       &Key{Method: "sample-aes", URI: "keyuri"},
+		Map:       &Map{URI: "mapuri"},
+		DateRange: &DateRange{ID: "test", StartDate: sd, XClientAttribute: []string{"X-THIS-TAG=TEST", "X-THIS-OTHER-TAG=TESTING"}},
+	}
+
+	buf := NewBufWriter()
+	err := seg.writeSegmentTags(buf)
+	fmt.Println(buf.buf.String())
+	fmt.Println(err)
+	//	t.Fatal("ERR")
 }
 
 func TestCompatibilityCheck(t *testing.T) {
