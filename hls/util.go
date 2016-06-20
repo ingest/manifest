@@ -23,7 +23,34 @@ func backwardsCompatibilityError(version int, tag string) error {
 }
 
 func attributeNotSetError(tag string, attribute string) error {
-	return fmt.Errorf(tag + " attribute " + attribute + " must be set.")
+	return fmt.Errorf("%s attribute %s must be set", tag, attribute)
+}
+
+func bufWriteString(buf *bytes.Buffer, data interface{}, write string) bool {
+	switch data.(type) {
+	case string:
+		if data.(string) != "" {
+			buf.WriteString(write)
+			return true
+		}
+	case float64:
+		if data.(float64) > float64(0) {
+			buf.WriteString(write)
+			return true
+		}
+	case int, int64:
+		if data.(int64) > 0 {
+			buf.WriteString(write)
+			return true
+		}
+	case bool:
+		if data.(bool) {
+			buf.WriteString(write)
+			return true
+		}
+	}
+
+	return false
 }
 
 //writeHeader sets the initial tags for both Media and Master Playlists files
@@ -56,33 +83,6 @@ func writeStartPoint(sp *StartPoint, buf *bytes.Buffer) error {
 	return nil
 }
 
-func bufWriteString(buf *bytes.Buffer, data interface{}, write string) bool {
-	switch data.(type) {
-	case string:
-		if data.(string) != "" {
-			buf.WriteString(write)
-			return true
-		}
-	case float64:
-		if data.(float64) > float64(0) {
-			buf.WriteString(write)
-			return true
-		}
-	case int, int64:
-		if data.(int64) > 0 {
-			buf.WriteString(write)
-			return true
-		}
-	case bool:
-		if data.(bool) {
-			buf.WriteString(write)
-			return true
-		}
-	}
-
-	return false
-}
-
 //writeSessionData sets the EXT-X-SESSION-DATA tag on Master Playlist file
 func (s *SessionData) writeSessionData(buf *bytes.Buffer) error {
 	if s != nil {
@@ -109,7 +109,7 @@ func (s *SessionData) writeSessionData(buf *bytes.Buffer) error {
 func (r *Rendition) writeXMedia(buf *bytes.Buffer) error {
 	if r != nil {
 
-		if !bufWriteString(buf, r.Type, fmt.Sprintf("#EXT-X-MEDIA:TYPE=%s", r.Type)) {
+		if !isValidType(strings.ToUpper(r.Type)) || !bufWriteString(buf, r.Type, fmt.Sprintf("#EXT-X-MEDIA:TYPE=%s", r.Type)) {
 			return attributeNotSetError("EXT-X-MEDIA", "TYPE")
 		}
 		if !bufWriteString(buf, r.GroupID, fmt.Sprintf(",GROUP-ID=\"%s\"", r.GroupID)) {
@@ -121,18 +121,30 @@ func (r *Rendition) writeXMedia(buf *bytes.Buffer) error {
 		bufWriteString(buf, r.Language, fmt.Sprintf(",LANGUAGE=\"%s\"", r.Language))
 		bufWriteString(buf, r.AssocLanguage, fmt.Sprintf(",ASSOC-LANGUAGE=\"%s\"", r.AssocLanguage))
 		bufWriteString(buf, r.Default, ",DEFAULT=YES")
-		if r.Forced && strings.ToUpper(r.Type) == "SUBTITLES" {
+		if r.Forced && strings.ToUpper(r.Type) == sub {
 			bufWriteString(buf, r.Forced, ",FORCED=YES")
 		}
-		if r.InstreamID != "" && strings.ToUpper(r.Type) == "CLOSED-CAPTIONS" && isValidInstreamID(strings.ToUpper(r.InstreamID)) {
+		if strings.ToUpper(r.Type) == cc && isValidInstreamID(strings.ToUpper(r.InstreamID)) {
 			bufWriteString(buf, r.InstreamID, fmt.Sprintf(",INSTREAM-ID=\"%s\"", r.InstreamID))
 		}
 		bufWriteString(buf, r.Characteristics, fmt.Sprintf("CHARACTERISTICS=\"%s\"", r.Characteristics))
-		bufWriteString(buf, r.URI, fmt.Sprintf(",URI=\"%s\"", r.URI))
-		buf.WriteRune('\n')
 
+		//URI is required for SUBTITLES and MUST NOT be present for CLOSED-CAPTIONS, other types URI is optinal
+		if strings.ToUpper(r.Type) == sub {
+			if !bufWriteString(buf, r.URI, fmt.Sprintf(",URI=\"%s\"", r.URI)) {
+				return attributeNotSetError("EXT-X-MEDIA", "URI for SUBTITLES")
+			}
+		} else if strings.ToUpper(r.Type) != cc {
+			bufWriteString(buf, r.URI, fmt.Sprintf(",URI=\"%s\"", r.URI))
+		}
+
+		buf.WriteRune('\n')
 	}
 	return nil
+}
+
+func isValidType(t string) bool {
+	return t == aud || t == vid || t == cc || t == sub
 }
 
 func isValidInstreamID(instream string) bool {
@@ -230,6 +242,11 @@ func (s *Segment) writeSegmentTags(buf *bytes.Buffer) error {
 		}
 		bufWriteString(buf, s.Discontinuity, "#EXT-X-DISCONTINUITY\n")
 
+		//TODO: Check if only one DateRange per segment
+		if err := s.DateRange.writeDateRange(buf); err != nil {
+			return err
+		}
+
 		if s.Inf != nil && s.Inf.Duration > float64(0) {
 			buf.WriteString(fmt.Sprintf("#EXTINF:%s,%s\n", strconv.FormatFloat(s.Inf.Duration, 'f', 3, 32), s.Inf.Title))
 		} else {
@@ -243,8 +260,6 @@ func (s *Segment) writeSegmentTags(buf *bytes.Buffer) error {
 			}
 			buf.WriteRune('\n')
 		}
-
-		//write DateRange
 
 		if s.URI != "" {
 			buf.WriteString(s.URI)
@@ -268,7 +283,7 @@ func (k *Key) writeKey(buf *bytes.Buffer) error {
 			!bufWriteString(buf, k.Method, fmt.Sprintf("METHOD=%s", strings.ToUpper(k.Method))) {
 			return attributeNotSetError("KEY", "METHOD")
 		}
-		if k.URI != "" && strings.ToUpper(k.Method) != "NONE" {
+		if k.URI != "" && strings.ToUpper(k.Method) != none {
 			bufWriteString(buf, k.URI, fmt.Sprintf(",URI=\"%s\"", k.URI))
 		} else {
 			return attributeNotSetError("EXT-X-KEY", "URI")
@@ -283,7 +298,7 @@ func (k *Key) writeKey(buf *bytes.Buffer) error {
 
 //Session Key Method can't be NONE
 func isValidMethod(isSession bool, method string) bool {
-	return (method == "AES-128" || method == "SAMPLE-AES") || (!isSession && method == "NONE")
+	return (method == aes || method == sample) || (!isSession && method == none)
 }
 
 func (m *Map) writeMap(buf *bytes.Buffer) error {
@@ -325,10 +340,11 @@ func (d *DateRange) writeDateRange(buf *bytes.Buffer) error {
 		if d.PlannedDuration != nil && *d.PlannedDuration >= float64(0) {
 			buf.WriteString(fmt.Sprintf(",PLANNED-DURATION=%s", strconv.FormatFloat(*d.PlannedDuration, 'f', 3, 32)))
 		}
-		if d.XClientAttribute != nil {
-			// for _, x := range d.XClientAttribute {
-			// 	//TODO:
-			// }
+		if len(d.XClientAttribute) > 0 {
+			for _, customTag := range d.XClientAttribute {
+				buf.WriteString(",")
+				buf.WriteString(customTag)
+			}
 		}
 
 		//TODO:SCET35
@@ -348,7 +364,7 @@ func (p *MediaPlaylist) writeEndList(buf *bytes.Buffer) {
 func (p *MediaPlaylist) checkCompatibility(s *Segment) error {
 	if s != nil {
 		if s.Key != nil {
-			if (strings.ToUpper(s.Key.Method) == "SAMPLE-AES" || s.Key.Keyformat != "" || s.Key.Keyformatversions != "") && p.Version < 5 {
+			if (strings.ToUpper(s.Key.Method) == sample || s.Key.Keyformat != "" || s.Key.Keyformatversions != "") && p.Version < 5 {
 				return backwardsCompatibilityError(p.Version, "#EXT-X-KEY")
 			}
 		}

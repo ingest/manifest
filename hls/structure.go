@@ -2,6 +2,16 @@ package hls
 
 import "time"
 
+const (
+	sub    = "SUBTITLES"
+	aud    = "AUDIO"
+	vid    = "VIDEO"
+	cc     = "CLOSED-CAPTIONS"
+	aes    = "AES-128"
+	none   = "NONE"
+	sample = "SAMPLE-AES"
+)
+
 //MediaPlaylist represents a Media Playlist object and its tags.
 //There MUST NOT be more than one tag per media playlist
 //#EXTM3U  MUST be first line
