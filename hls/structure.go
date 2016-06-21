@@ -37,7 +37,7 @@ type Segment struct {
 	Inf             *Inf //Required.
 	Byterange       *Byterange
 	Discontinuity   bool //Represents tag #EXT-X-DISCONTINUITY. MUST be present if there's change in file format; number, type and identifiers of tracks or timestamp sequence
-	Key             *Key
+	Keys            []*Key
 	Map             *Map
 	ProgramDateTime time.Time //Represents tag #EXT-X-PROGRAM-DATE-TIME
 	DateRange       *DateRange
@@ -53,7 +53,7 @@ type Inf struct {
 //Format:<length>[@<offset>].
 type Byterange struct {
 	Length int64
-	Offset int64
+	Offset *int64
 }
 
 //Key represents tags #EXT-X-KEY:<attribute=value> and #EXT-X-SESSION-KEY. Specifies how to decrypt an encrypted media segment.
@@ -86,17 +86,14 @@ type DateRange struct {
 	PlannedDuration  *float64  //Optional. Expected duration.
 	XClientAttribute []string  //Optional. Namespace reserved for client-defined att. eg. X-COM-EXAMPLE="example".
 	EndOnNext        bool      //Optional. Possible Value: YES. Indicates the end of the current date range is equal to the start date of the following range of the same class.
-	//If present, a Class att is required, Duration and EndDate MUST NOT be present
-	//SCTE35         *SCTE35 -> TODO: Support for SCTE35
+	SCTE35           *SCTE35
 }
 
 //SCTE35 represents a DateRange attribute SCTE35-OUT, SCTE35-IN or SCTE35-CMD
-//TODO:Read more on this.
-// type SCTE35 struct {
-// 	ID   string
-// 	Type string //IN, OUT, CMD
-// 	Cue  string //big-endian binary representation of the splice_info_section(), expressed as a hexadecimal-sequence.
-// }
+type SCTE35 struct {
+	Type  string //IN, OUT, CMD
+	Value string //big-endian binary representation of the splice_info_section(), expressed as a hexadecimal-sequence.
+}
 
 //MasterPlaylist represents a Master Playlist object and its tags
 type MasterPlaylist struct {

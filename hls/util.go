@@ -56,8 +56,13 @@ func (b *BufWriter) WriteValidString(data interface{}, write string) bool {
 			_, b.err = b.buf.WriteString(write)
 			return true
 		}
-	case int, int64:
+	case int64:
 		if data.(int64) > 0 {
+			_, b.err = b.buf.WriteString(write)
+			return true
+		}
+	case int:
+		if data.(int) > 0 {
 			_, b.err = b.buf.WriteString(write)
 			return true
 		}
@@ -101,7 +106,7 @@ func writeHeader(version int, buf *BufWriter) error {
 //writeIndependentSegment sets the #EXT-X-INDEPENDENT-SEGMENTS tag on Media and Master Playlist file
 func writeIndependentSegment(isIndSeg bool, buf *BufWriter) {
 	if isIndSeg {
-		buf.WriteString("EXT-X-INDEPENDENT-SEGMENTS\n")
+		buf.WriteString("#EXT-X-INDEPENDENT-SEGMENTS\n")
 	}
 }
 
@@ -262,9 +267,12 @@ func (p *MediaPlaylist) writeIFramesOnly(buf *BufWriter) error {
 
 func (s *Segment) writeSegmentTags(buf *BufWriter) error {
 	if s != nil {
-		//TODO:confirm if only one key per segment possible
-		if err := s.Key.writeKey(buf); err != nil {
-			return err
+		if s.Keys != nil {
+			for _, key := range s.Keys {
+				if err := key.writeKey(buf); err != nil {
+					return err
+				}
+			}
 		}
 
 		if err := s.Map.writeMap(buf); err != nil {
@@ -281,16 +289,14 @@ func (s *Segment) writeSegmentTags(buf *BufWriter) error {
 			return err
 		}
 
-		if s.Inf != nil && s.Inf.Duration > float64(0) {
-			buf.WriteString(fmt.Sprintf("#EXTINF:%s,%s\n", strconv.FormatFloat(s.Inf.Duration, 'f', 3, 32), s.Inf.Title))
-		} else {
+		if s.Inf == nil || !buf.WriteValidString(s.Inf.Duration, fmt.Sprintf("#EXTINF:%s,%s\n", strconv.FormatFloat(s.Inf.Duration, 'f', 3, 32), s.Inf.Title)) {
 			return attributeNotSetError("EXTINF", "DURATION")
 		}
 
 		if s.Byterange != nil {
 			buf.WriteString(fmt.Sprintf("#EXT-X-BYTERANGE:%s", strconv.FormatInt(s.Byterange.Length, 10)))
-			if s.Byterange.Offset > 0 {
-				buf.WriteString("@" + strconv.FormatInt(s.Byterange.Offset, 10))
+			if s.Byterange.Offset != nil {
+				buf.WriteString("@" + strconv.FormatInt(*s.Byterange.Offset, 10))
 			}
 			buf.WriteRune('\n')
 		}
@@ -323,8 +329,8 @@ func (k *Key) writeKey(buf *BufWriter) error {
 			return attributeNotSetError("EXT-X-KEY", "URI")
 		}
 		buf.WriteValidString(k.IV, fmt.Sprintf(",IV=%s", k.IV))
-		buf.WriteValidString(k.Keyformat, fmt.Sprintf("KEYFORMAT=\"%s\"", k.Keyformat))
-		buf.WriteValidString(k.Keyformatversions, fmt.Sprintf("KEYFORMATVERSIONS=\"%s\"", k.Keyformatversions))
+		buf.WriteValidString(k.Keyformat, fmt.Sprintf(",KEYFORMAT=\"%s\"", k.Keyformat))
+		buf.WriteValidString(k.Keyformatversions, fmt.Sprintf(",KEYFORMATVERSIONS=\"%s\"", k.Keyformatversions))
 		buf.WriteRune('\n')
 	}
 	return buf.err
@@ -340,11 +346,14 @@ func (m *Map) writeMap(buf *BufWriter) error {
 		if !buf.WriteValidString(m.URI, fmt.Sprintf("#EXT-X-MAP:URI=\"%s\"", m.URI)) {
 			return attributeNotSetError("EXT-X-MAP", "URI")
 		}
-		//TODO:look if offset is included when = 0
 		if m.Byterange != nil {
+			if m.Byterange.Offset == nil {
+				o := int64(0)
+				m.Byterange.Offset = &o
+			}
 			buf.WriteString(fmt.Sprintf(",BYTERANGE=\"%s@%s\"",
 				strconv.FormatInt(m.Byterange.Length, 10),
-				strconv.FormatInt(m.Byterange.Offset, 10)))
+				strconv.FormatInt(*m.Byterange.Offset, 10)))
 		}
 		buf.WriteRune('\n')
 	}
@@ -376,16 +385,40 @@ func (d *DateRange) writeDateRange(buf *BufWriter) error {
 		}
 		if len(d.XClientAttribute) > 0 {
 			for _, customTag := range d.XClientAttribute {
+				if !strings.HasPrefix(strings.ToUpper(customTag), "X-") {
+					return errors.New("EXT-X-DATERANGE client-defined attributes must start with X-")
+				}
 				buf.WriteString(",")
-				buf.WriteString(customTag)
+				buf.WriteString(strings.ToUpper(customTag))
 			}
 		}
 
-		//TODO:SCET35
-		buf.WriteValidString(d.EndOnNext, ",END-ON-NEXT=YES")
+		d.SCTE35.writeSCTE(buf)
+
+		if buf.WriteValidString(d.EndOnNext, ",END-ON-NEXT=YES") {
+			if d.Class == "" {
+				return errors.New("EXT-X-DATERANGE tag must have a CLASS attribute when END-ON-NEXT attribue is present")
+			}
+			if d.Duration != nil || !d.EndDate.IsZero() {
+				return errors.New("EXT-X-DATERANGE tag must not have DURATION or END-DATE attributes when END-ON-NEXT attribute is present")
+			}
+		}
 		buf.WriteRune('\n')
 	}
 	return buf.err
+}
+
+func (s *SCTE35) writeSCTE(buf *BufWriter) {
+	if s != nil {
+		t := strings.ToUpper(s.Type)
+		if t == "IN" || t == "OUT" || t == "CMD" {
+			if !buf.WriteValidString(s.Value, fmt.Sprintf(",SCTE35-%s=%s", t, s.Value)) {
+				buf.err = attributeNotSetError("SCTE35", "Value")
+			}
+			return
+		}
+		buf.err = errors.New("SCTE35 type must be IN, OUT or CMD")
+	}
 }
 
 func (p *MediaPlaylist) writeEndList(buf *BufWriter) {
@@ -397,8 +430,8 @@ func (p *MediaPlaylist) writeEndList(buf *BufWriter) {
 //checkCompatibility checks backwards compatibility issues according to the Media Playlist version
 func (p *MediaPlaylist) checkCompatibility(s *Segment) error {
 	if s != nil {
-		if s.Key != nil {
-			if (strings.ToUpper(s.Key.Method) == sample || s.Key.Keyformat != "" || s.Key.Keyformatversions != "") && p.Version < 5 {
+		for _, key := range s.Keys {
+			if (strings.ToUpper(key.Method) == sample || key.Keyformat != "" || key.Keyformatversions != "") && p.Version < 5 {
 				return backwardsCompatibilityError(p.Version, "#EXT-X-KEY")
 			}
 		}
