@@ -9,6 +9,7 @@ import (
 )
 
 func decodeVariant(line string, isIframe bool) (*Variant, error) {
+	fmt.Println(line)
 	vMap, err := splitParams(line)
 	if err != nil {
 		return nil, err
@@ -17,25 +18,25 @@ func decodeVariant(line string, isIframe bool) (*Variant, error) {
 
 	for k, v := range vMap {
 		switch k {
-		case bandwidth:
+		case "BANDWIDTH":
 			variant.Bandwidth, err = strconv.ParseInt(v, 10, 64)
-		case avgBandwidth:
+		case "AVERAGE-BANDWIDTH":
 			variant.AvgBandwidth, err = strconv.ParseInt(v, 10, 64)
-		case codecs:
+		case "CODECS":
 			variant.Codecs = v
-		case resolution:
+		case "RESOLUTION":
 			variant.Resolution = v
-		case frameRate:
+		case "FRAME-RATE":
 			variant.FrameRate, err = strconv.ParseFloat(v, 64)
-		case aud:
+		case "AUDIO":
 			variant.Audio = v
-		case vid:
+		case "VIDEO":
 			variant.Video = v
-		case sub:
+		case "SUBTITLES":
 			variant.Subtitles = v
-		case cc:
+		case "CLOSED-CAPTIONS":
 			variant.ClosedCaptions = v
-		case uri:
+		case "URI":
 			variant.URI = v
 		}
 
@@ -58,14 +59,14 @@ func decodeRendition(line string) (*Rendition, error) {
 	for k, v := range rMap {
 		switch k {
 		case "TYPE":
-			if isValidType(v) {
+			if isValidType(strings.ToUpper(v)) {
 				rendition.Type = v
 			}
 		case "URI":
 			rendition.URI = v
 		case "GROUP-ID":
 			rendition.GroupID = v
-		case language:
+		case "LANGUAGE":
 			rendition.Language = v
 		case "ASSOC-LANGUAGE":
 			rendition.AssocLanguage = v
@@ -84,7 +85,7 @@ func decodeRendition(line string) (*Rendition, error) {
 				rendition.Forced = true
 			}
 		case "INSTREAM-ID":
-			if isValidInstreamID(v) {
+			if isValidInstreamID(strings.ToUpper(v)) {
 				rendition.InstreamID = v
 			}
 		case "CHARACTERISTICS":
@@ -102,13 +103,13 @@ func decodeSessionData(line string) (*SessionData, error) {
 	sd := &SessionData{}
 	for k, v := range sdMap {
 		switch k {
-		case dataID:
+		case "DATA-ID":
 			sd.DataID = v
-		case value:
+		case "VALUE":
 			sd.Value = v
-		case uri:
+		case "URI":
 			sd.URI = v
-		case language:
+		case "LANGUAGE":
 			sd.Language = v
 		}
 	}
@@ -121,7 +122,6 @@ func decodeInf(line string) (*Inf, error) {
 		return nil, err
 	}
 	i := &Inf{Duration: d, Title: stringAfter(line, ",")}
-	fmt.Println(i)
 	return i, err
 }
 
@@ -144,10 +144,14 @@ func decodeDateRange(line string) (*DateRange, error) {
 		case k == "DURATION":
 			if d, err := strconv.ParseFloat(v, 64); err == nil {
 				dr.Duration = &d
+			} else {
+				return nil, err
 			}
 		case k == "PLANNED-DURATION":
 			if pd, err := strconv.ParseFloat(v, 64); err == nil {
 				dr.PlannedDuration = &pd
+			} else {
+				return nil, err
 			}
 		case strings.HasPrefix(k, "X-"):
 			dr.XClientAttribute = append(dr.XClientAttribute, fmt.Sprintf("%s=%s", k, v))
@@ -187,7 +191,7 @@ func decodeMap(line string) (*Map, error) {
 	m := &Map{}
 	for k, v := range mMap {
 		switch k {
-		case uri:
+		case "URI":
 			m.URI = v
 		case "BYTERANGE":
 			m.Byterange, err = decodeByterange(v)
@@ -225,7 +229,7 @@ func decodeKey(line string) (*Key, error) {
 		switch k {
 		case "METHOD":
 			key.Method = v
-		case uri:
+		case "URI":
 			key.URI = v
 		case "IV":
 			key.IV = v
@@ -248,7 +252,11 @@ func decodeStartPoint(line string) (*StartPoint, error) {
 	for k, v := range spMap {
 		switch k {
 		case "TIME-OFFSET":
-			sp.TimeOffset, err = strconv.ParseFloat(v, 64)
+			if to, err := strconv.ParseFloat(v, 64); err == nil {
+				sp.TimeOffset = to
+			} else {
+				return nil, err
+			}
 		case "PRECISE":
 			if v == boolYes {
 				sp.Precise = true
@@ -275,6 +283,7 @@ func stringBefore(line string, char string) (ret string) {
 }
 
 //TODO: Try to improve this. Regex?
+//add regex to ignore comma inside double quotes. IE. CODECS att.
 func splitParams(line string) (map[string]string, error) {
 	params := strings.Split(line, ",")
 	m := make(map[string]string)
@@ -282,7 +291,7 @@ func splitParams(line string) (map[string]string, error) {
 		att := strings.Split(p, "=")
 		if len(att) == 2 {
 			k, v := att[0], att[1]
-			m[strings.ToUpper(k)] = strings.Trim(strings.ToUpper(v), "\"")
+			m[strings.ToUpper(k)] = strings.Trim(v, "\"")
 		} else {
 			return nil, errors.New("Badly formatted attribute list")
 		}

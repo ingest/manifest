@@ -37,32 +37,32 @@ func (p *MasterPlaylist) ReadManifest(reader io.Reader) error {
 		line = strings.TrimSpace(line)
 
 		switch {
-		case strings.HasPrefix(line, extm3uTag):
+		case strings.HasPrefix(line, "#EXTM3U"):
 			p.M3U = true
 
-		case strings.HasPrefix(line, versionTag):
+		case strings.HasPrefix(line, "#EXT-X-VERSION"):
 			if version := stringAfter(line, ":"); version != "" {
 				p.Version, buf.err = strconv.Atoi(version)
 			}
 
-		case strings.HasPrefix(line, startTag):
+		case strings.HasPrefix(line, "#EXT-X-START"):
 			p.StartPoint, buf.err = decodeStartPoint(stringAfter(line, ":"))
 
-		case strings.HasPrefix(line, indSegmentsTag):
+		case strings.HasPrefix(line, "#EXT-X-INDEPENDENT-SEGMENTS"):
 			p.IndependentSegments = true
 
-		case strings.HasPrefix(line, sessionKeyTag):
-			if key, buf.err = decodeKey(line); buf.err == nil {
+		case strings.HasPrefix(line, "#EXT-X-SESSION-KEY"):
+			if key, buf.err = decodeKey(stringAfter(line, ":")); buf.err == nil {
 				p.SessionKeys = append(p.SessionKeys, key)
 			}
 
-		case strings.HasPrefix(line, sessionDataTag):
-			if data, buf.err = decodeSessionData(line); buf.err == nil {
+		case strings.HasPrefix(line, "#EXT-X-SESSION-DATA"):
+			if data, buf.err = decodeSessionData(stringAfter(line, ":")); buf.err == nil {
 				p.SessionData = append(p.SessionData, data)
 			}
 
-		case strings.HasPrefix(line, mediaTag):
-			if r, buf.err = decodeRendition(line); buf.err == nil {
+		case strings.HasPrefix(line, "#EXT-X-MEDIA"):
+			if r, buf.err = decodeRendition(stringAfter(line, ":")); buf.err == nil {
 				renditions = append(renditions, r)
 			}
 
@@ -75,12 +75,12 @@ func (p *MasterPlaylist) ReadManifest(reader io.Reader) error {
 			variant = &Variant{}
 			renditions = []*Rendition{}
 
-		case strings.HasPrefix(line, streamInfTag):
-			variant, buf.err = decodeVariant(line, false)
+		case strings.HasPrefix(line, "#EXT-X-STREAM-INF"):
+			variant, buf.err = decodeVariant(stringAfter(line, ":"), false)
 
 		//case line is EXT-X-I-FRAME-STREAM-INF, append variant to MasterPlaylist and restart variables
-		case strings.HasPrefix(line, iframesStreamInfTag):
-			if variant, buf.err = decodeVariant(line, true); buf.err == nil {
+		case strings.HasPrefix(line, "#EXT-X-I-FRAME-STREAM-INF"):
+			if variant, buf.err = decodeVariant(stringAfter(line, ":"), true); buf.err == nil {
 				variant.Renditions = renditions
 				p.Variants = append(p.Variants, variant)
 				variant = &Variant{}
@@ -121,55 +121,55 @@ func (p *MediaPlaylist) ReadManifest(reader io.Reader) error {
 		line = strings.TrimSpace(line)
 
 		switch {
-		case strings.HasPrefix(line, extm3uTag):
+		case strings.HasPrefix(line, "#EXTM3U"):
 			p.M3U = true
-		case strings.HasPrefix(line, versionTag):
+		case strings.HasPrefix(line, "#EXT-X-VERSION"):
 			if version := stringAfter(line, ":"); version != "" {
 				p.Version, buf.err = strconv.Atoi(version)
 			}
-		case strings.HasPrefix(line, targetDurationTag):
+		case strings.HasPrefix(line, "#EXT-X-TARGETDURATION"):
 			if duration := stringAfter(line, ":"); duration != "" {
 				p.TargetDuration, buf.err = strconv.Atoi(duration)
 			}
-		case strings.HasPrefix(line, mediaSequenceTag):
+		case strings.HasPrefix(line, "#EXT-X-MEDIA-SEQUENCE"):
 			if sequence := stringAfter(line, ":"); sequence != "" {
 				p.MediaSequence, buf.err = strconv.Atoi(sequence)
 			}
-		case strings.HasPrefix(line, discSequenceTag):
+		case strings.HasPrefix(line, "#EXT-X-DISCONTINUITY-SEQUENCE"):
 			if disc := stringAfter(line, ":"); disc != "" {
 				p.DiscontinuitySequence, buf.err = strconv.Atoi(disc)
 			}
-		case strings.HasPrefix(line, iframesOnlyTag):
+		case strings.HasPrefix(line, "#EXT-X-I-FRAMES-ONLY"):
 			p.IFramesOnly = true
-		case strings.HasPrefix(line, allowCacheTag):
+		case strings.HasPrefix(line, "#EXT-X-ALLOW-CACHE"):
 			if allow := stringAfter(line, ":"); allow == boolYes {
 				p.AllowCache = true
 			}
-		case strings.HasPrefix(line, indSegmentsTag):
+		case strings.HasPrefix(line, "#EXT-X-INDEPENDENT-SEGMENTS"):
 			p.IndependentSegments = true
-		case strings.HasPrefix(line, playlistTypeTag):
+		case strings.HasPrefix(line, "#EXT-X-PLAYLIST-TYPE"):
 			if t := stringAfter(line, ":"); t == "VOD" || t == "EVENT" {
 				p.Type = t
 			}
-		case strings.HasPrefix(line, endListTag):
+		case strings.HasPrefix(line, "#EXT-X-ENDLIST"):
 			p.EndList = true
-		case strings.HasPrefix(line, startTag):
+		case strings.HasPrefix(line, "#EXT-X-START"):
 			p.StartPoint, buf.err = decodeStartPoint(stringAfter(line, ":"))
 
 			//check segment tags, if line is uri, append segment to p.Segments and restart segment
-		case strings.HasPrefix(line, keyTag):
+		case strings.HasPrefix(line, "#EXT-X-KEY"):
 			if key, buf.err = decodeKey(stringAfter(line, ":")); buf.err == nil {
 				segment.Keys = append(segment.Keys, key)
 			}
-		case strings.HasPrefix(line, mapTag):
-			segment.Map, buf.err = decodeMap(line)
-		case strings.HasPrefix(line, programDTTag):
+		case strings.HasPrefix(line, "#EXT-X-MAP"):
+			segment.Map, buf.err = decodeMap(stringAfter(line, ":"))
+		case strings.HasPrefix(line, "#EXT-X-PROGRAM-DATE-TIME"):
 			segment.ProgramDateTime, buf.err = decodeDateTime(stringAfter(line, ":"))
-		case strings.HasPrefix(line, dateRangeTag):
+		case strings.HasPrefix(line, "#EXT-X-DATERANGE"):
 			segment.DateRange, buf.err = decodeDateRange(stringAfter(line, ":"))
-		case strings.HasPrefix(line, byterangeTag):
+		case strings.HasPrefix(line, "#EXT-X-BYTERANGE"):
 			segment.Byterange, buf.err = decodeByterange(stringAfter(line, ":"))
-		case strings.HasPrefix(line, extinfTag):
+		case strings.HasPrefix(line, "#EXTINF"):
 			segment.Inf, buf.err = decodeInf(stringAfter(line, ":"))
 		case !strings.HasPrefix(line, "#"):
 			segment.URI = line
