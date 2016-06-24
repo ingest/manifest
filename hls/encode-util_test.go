@@ -2,7 +2,6 @@ package hls
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -18,7 +17,7 @@ func TestWriteXMedia(t *testing.T) {
 		URI:      "http://test.com",
 	}
 
-	buf := NewBufWriter()
+	buf := NewBufWrapper()
 
 	err := rendition.writeXMedia(buf)
 	if err != nil {
@@ -31,7 +30,7 @@ func TestWriteXMediaTypeError(t *testing.T) {
 		GroupID: "TestID",
 	}
 
-	buf := NewBufWriter()
+	buf := NewBufWrapper()
 
 	err := rendition.writeXMedia(buf)
 	if err.Error() != attributeNotSetError("EXT-X-MEDIA", "TYPE").Error() {
@@ -44,7 +43,7 @@ func TestWriteXMediaGroupError(t *testing.T) {
 		Type: "AUDIO",
 	}
 
-	buf := NewBufWriter()
+	buf := NewBufWrapper()
 
 	err := rendition.writeXMedia(buf)
 	if err.Error() != attributeNotSetError("EXT-X-MEDIA", "GROUP-ID").Error() {
@@ -60,7 +59,7 @@ func TestWriteXMediaInvalid(t *testing.T) {
 		Name:       "Test",
 	}
 
-	buf := NewBufWriter()
+	buf := NewBufWrapper()
 
 	err := rendition.writeXMedia(buf)
 	if err != nil {
@@ -68,7 +67,7 @@ func TestWriteXMediaInvalid(t *testing.T) {
 	}
 
 	rendition.URI = "test"
-	buf = NewBufWriter()
+	buf = NewBufWrapper()
 	_ = rendition.writeXMedia(buf)
 	if strings.Contains(buf.buf.String(), "URI") {
 		t.Error("Expected buf to not contain URI")
@@ -76,7 +75,7 @@ func TestWriteXMediaInvalid(t *testing.T) {
 
 	rendition.Type = "SUBTITLES"
 	rendition.URI = ""
-	buf = NewBufWriter()
+	buf = NewBufWrapper()
 	err = rendition.writeXMedia(buf)
 	if err.Error() != attributeNotSetError("EXT-X-MEDIA", "URI for SUBTITLES").Error() {
 		t.Errorf("Exptected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "URI for SUBTITLES").Error(), err.Error())
@@ -91,7 +90,7 @@ func TestWriteStreamInf(t *testing.T) {
 		Resolution: "230x400",
 	}
 
-	buf := NewBufWriter()
+	buf := NewBufWrapper()
 	err := variant.writeStreamInf(7, buf)
 
 	if err != nil {
@@ -197,14 +196,12 @@ func TestGenerateMediaPlaylist(t *testing.T) {
 	p.StartPoint = &StartPoint{TimeOffset: 10.543}
 
 	buf, err := p.GenerateManifest()
-
 	if err != nil {
 		t.Fatalf("Expected err to be nil, but got %s", err.Error())
 	}
 
 	b := new(bytes.Buffer)
 	b.ReadFrom(buf)
-
 	if !strings.Contains(b.String(), "#EXT-X-TARGETDURATION:10") {
 		t.Error("Expected buf to contain #EXT-X-TARGETDURATION")
 	}
@@ -231,21 +228,21 @@ func TestGenerateMediaPlaylist(t *testing.T) {
 }
 
 func TestDateRange(t *testing.T) {
-	buf := NewBufWriter()
+	buf := NewBufWrapper()
 	d := &DateRange{}
 	err := d.writeDateRange(buf)
 	if err.Error() != attributeNotSetError("EXT-X-DATERANGE", "ID").Error() {
 		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-DATERANGE", "ID"), err)
 	}
 
-	buf = NewBufWriter()
+	buf = NewBufWrapper()
 	d.ID = "test"
 	err = d.writeDateRange(buf)
 	if err.Error() != attributeNotSetError("EXT-X-DATERANGE", "START-DATE").Error() {
 		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-DATERANGE", "START-DATE"), err)
 	}
 
-	buf = NewBufWriter()
+	buf = NewBufWrapper()
 	d.StartDate = time.Now()
 	d.EndOnNext = true
 	err = d.writeDateRange(buf)
@@ -253,7 +250,7 @@ func TestDateRange(t *testing.T) {
 		t.Error("EndOnNext without Class should return error")
 	}
 
-	buf = NewBufWriter()
+	buf = NewBufWrapper()
 	d.EndDate = time.Now().Add(-1 * time.Hour)
 	d.EndOnNext = false
 	err = d.writeDateRange(buf)
@@ -263,7 +260,7 @@ func TestDateRange(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
-	buf := NewBufWriter()
+	buf := NewBufWrapper()
 	m := &Map{
 		Byterange: &Byterange{
 			Length: 100,
@@ -274,13 +271,13 @@ func TestMap(t *testing.T) {
 		t.Fatalf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MAP", "URI").Error(), err.Error())
 	}
 
-	buf = NewBufWriter()
+	buf = NewBufWrapper()
 	m.URI = "test"
 	err = m.writeMap(buf)
 	if err != nil {
 		t.Error("Expected err to be nil")
 	}
-	fmt.Println(buf.buf.String())
+
 	if !strings.Contains(buf.buf.String(), "#EXT-X-MAP:URI=\"test\",BYTERANGE=\"100@0\"") {
 		t.Error("Expected buf to contain #EXT-X-MAP")
 	}

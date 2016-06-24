@@ -9,7 +9,7 @@ import (
 
 //GenerateManifest writes a Master Playlist file
 func (p *MasterPlaylist) GenerateManifest() (io.Reader, error) {
-	buf := NewBufWriter()
+	buf := NewBufWrapper()
 
 	//Write header tags
 	if err := writeHeader(p.Version, buf); err != nil {
@@ -66,7 +66,7 @@ func (p *MasterPlaylist) GenerateManifest() (io.Reader, error) {
 
 //GenerateManifest writes a Media Playlist file
 func (p *MediaPlaylist) GenerateManifest() (io.Reader, error) {
-	buf := NewBufWriter()
+	buf := NewBufWrapper()
 
 	//write header tags
 	if err := writeHeader(p.Version, buf); err != nil {
