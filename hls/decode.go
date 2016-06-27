@@ -84,8 +84,8 @@ func (p *MasterPlaylist) ReadManifest(reader io.Reader) error {
 		}
 
 	}
-	return buf.err
 
+	return buf.err
 }
 
 //ReadManifest reads a Media Playlist file and convert it to MediaPlaylist object
@@ -171,5 +171,6 @@ func (p *MediaPlaylist) ReadManifest(reader io.Reader) error {
 			segment = &Segment{}
 		}
 	}
+
 	return buf.err
 }

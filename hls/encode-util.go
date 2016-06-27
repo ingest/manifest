@@ -309,7 +309,6 @@ func (d *DateRange) writeDateRange(buf *BufWrapper) error {
 			if d.EndDate.Before(d.StartDate) {
 				return errors.New("DateRange attribute EndDate must be equal or later than StartDate")
 			}
-			//TODO:Find out the correct date parsing format
 			buf.WriteString(fmt.Sprintf(",END-DATE=\"%s\"", d.EndDate.Format(time.RFC3339Nano)))
 		}
 		if d.Duration != nil && *d.Duration >= float64(0) {

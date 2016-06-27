@@ -16,15 +16,21 @@ func decodeVariant(line string, isIframe bool) (*Variant, error) {
 	for k, v := range vMap {
 		switch k {
 		case "BANDWIDTH":
-			variant.Bandwidth, err = parseInt(v, 10, 64)
+			if variant.Bandwidth, err = strconv.ParseInt(v, 10, 64); err != nil {
+				return nil, err
+			}
 		case "AVERAGE-BANDWIDTH":
-			variant.AvgBandwidth, err = parseInt(v, 10, 64)
+			if variant.AvgBandwidth, err = strconv.ParseInt(v, 10, 64); err != nil {
+				return nil, err
+			}
 		case "CODECS":
 			variant.Codecs = v
 		case "RESOLUTION":
 			variant.Resolution = v
 		case "FRAME-RATE":
-			variant.FrameRate, err = parseFloat(v, 64)
+			if variant.FrameRate, err = strconv.ParseFloat(v, 64); err != nil {
+				return nil, err
+			}
 		case "AUDIO":
 			variant.Audio = v
 		case "VIDEO":
@@ -44,24 +50,6 @@ func decodeVariant(line string, isIframe bool) (*Variant, error) {
 
 	variant.IsIframe = isIframe
 	return variant, err
-}
-
-//parseInt wraps strconv.ParseInt
-func parseInt(s string, base int, bitSize int) (int64, error) {
-	d, err := strconv.ParseInt(s, base, bitSize)
-	if err != nil {
-		return 0, err
-	}
-	return d, err
-}
-
-//parseFloat wraps strconv.ParseFloat
-func parseFloat(s string, bitSize int) (float64, error) {
-	f, err := strconv.ParseFloat(s, bitSize)
-	if err != nil {
-		return float64(0), err
-	}
-	return f, err
 }
 
 func decodeRendition(line string) *Rendition {
@@ -128,7 +116,9 @@ func decodeSessionData(line string) *SessionData {
 func decodeInf(line string) (*Inf, error) {
 	var err error
 	i := &Inf{}
-	i.Duration, err = parseFloat(stringBefore(line, ","), 64)
+	if i.Duration, err = strconv.ParseFloat(stringBefore(line, ","), 64); err != nil {
+		return nil, err
+	}
 	i.Title = stringAfter(line, ",")
 	return i, err
 }
@@ -249,7 +239,9 @@ func decodeStartPoint(line string) (*StartPoint, error) {
 	for k, v := range spMap {
 		switch k {
 		case "TIME-OFFSET":
-			sp.TimeOffset, err = parseFloat(v, 64)
+			if sp.TimeOffset, err = strconv.ParseFloat(v, 64); err != nil {
+				return nil, err
+			}
 		case "PRECISE":
 			if v == boolYes {
 				sp.Precise = true
