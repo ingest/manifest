@@ -19,9 +19,9 @@ func TestWriteXMedia(t *testing.T) {
 
 	buf := NewBufWrapper()
 
-	err := rendition.writeXMedia(buf)
-	if err != nil {
-		t.Errorf("Expected err to be nil, but got %s", err.Error())
+	rendition.writeXMedia(buf)
+	if buf.err != nil {
+		t.Errorf("Expected err to be nil, but got %s", buf.err.Error())
 	}
 }
 
@@ -32,9 +32,9 @@ func TestWriteXMediaTypeError(t *testing.T) {
 
 	buf := NewBufWrapper()
 
-	err := rendition.writeXMedia(buf)
-	if err.Error() != attributeNotSetError("EXT-X-MEDIA", "TYPE").Error() {
-		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "TYPE"), err.Error())
+	rendition.writeXMedia(buf)
+	if buf.err.Error() != attributeNotSetError("EXT-X-MEDIA", "TYPE").Error() {
+		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "TYPE"), buf.err.Error())
 	}
 }
 
@@ -45,9 +45,9 @@ func TestWriteXMediaGroupError(t *testing.T) {
 
 	buf := NewBufWrapper()
 
-	err := rendition.writeXMedia(buf)
-	if err.Error() != attributeNotSetError("EXT-X-MEDIA", "GROUP-ID").Error() {
-		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "GROUP-ID"), err.Error())
+	rendition.writeXMedia(buf)
+	if buf.err.Error() != attributeNotSetError("EXT-X-MEDIA", "GROUP-ID").Error() {
+		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "GROUP-ID"), buf.err.Error())
 	}
 }
 
@@ -61,14 +61,14 @@ func TestWriteXMediaInvalid(t *testing.T) {
 
 	buf := NewBufWrapper()
 
-	err := rendition.writeXMedia(buf)
-	if err != nil {
+	rendition.writeXMedia(buf)
+	if buf.err != nil {
 		t.Errorf("Expected err to be nil")
 	}
 
 	rendition.URI = "test"
 	buf = NewBufWrapper()
-	_ = rendition.writeXMedia(buf)
+	rendition.writeXMedia(buf)
 	if strings.Contains(buf.buf.String(), "URI") {
 		t.Error("Expected buf to not contain URI")
 	}
@@ -76,9 +76,9 @@ func TestWriteXMediaInvalid(t *testing.T) {
 	rendition.Type = "SUBTITLES"
 	rendition.URI = ""
 	buf = NewBufWrapper()
-	err = rendition.writeXMedia(buf)
-	if err.Error() != attributeNotSetError("EXT-X-MEDIA", "URI for SUBTITLES").Error() {
-		t.Errorf("Exptected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "URI for SUBTITLES").Error(), err.Error())
+	rendition.writeXMedia(buf)
+	if buf.err.Error() != attributeNotSetError("EXT-X-MEDIA", "URI for SUBTITLES").Error() {
+		t.Errorf("Exptected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "URI for SUBTITLES").Error(), buf.err.Error())
 	}
 }
 
@@ -91,10 +91,10 @@ func TestWriteStreamInf(t *testing.T) {
 	}
 
 	buf := NewBufWrapper()
-	err := variant.writeStreamInf(7, buf)
+	variant.writeStreamInf(7, buf)
 
-	if err != nil {
-		t.Fatalf("Expected err to be nil, but got %s", err.Error())
+	if buf.err != nil {
+		t.Fatalf("Expected err to be nil, but got %s", buf.err.Error())
 	}
 
 	if !strings.Contains(buf.buf.String(), "#EXT-X-I-FRAME-STREAM-INF") {
@@ -230,31 +230,31 @@ func TestGenerateMediaPlaylist(t *testing.T) {
 func TestDateRange(t *testing.T) {
 	buf := NewBufWrapper()
 	d := &DateRange{}
-	err := d.writeDateRange(buf)
-	if err.Error() != attributeNotSetError("EXT-X-DATERANGE", "ID").Error() {
-		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-DATERANGE", "ID"), err)
+	d.writeDateRange(buf)
+	if buf.err.Error() != attributeNotSetError("EXT-X-DATERANGE", "ID").Error() {
+		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-DATERANGE", "ID"), buf.err)
 	}
 
 	buf = NewBufWrapper()
 	d.ID = "test"
-	err = d.writeDateRange(buf)
-	if err.Error() != attributeNotSetError("EXT-X-DATERANGE", "START-DATE").Error() {
-		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-DATERANGE", "START-DATE"), err)
+	d.writeDateRange(buf)
+	if buf.err.Error() != attributeNotSetError("EXT-X-DATERANGE", "START-DATE").Error() {
+		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-DATERANGE", "START-DATE"), buf.err)
 	}
 
 	buf = NewBufWrapper()
 	d.StartDate = time.Now()
 	d.EndOnNext = true
-	err = d.writeDateRange(buf)
-	if err == nil {
+	d.writeDateRange(buf)
+	if buf.err == nil {
 		t.Error("EndOnNext without Class should return error")
 	}
 
 	buf = NewBufWrapper()
 	d.EndDate = time.Now().Add(-1 * time.Hour)
 	d.EndOnNext = false
-	err = d.writeDateRange(buf)
-	if err == nil {
+	d.writeDateRange(buf)
+	if buf.err == nil {
 		t.Error("EndDate before StartDate should return error")
 	}
 }
@@ -266,15 +266,15 @@ func TestMap(t *testing.T) {
 			Length: 100,
 		},
 	}
-	err := m.writeMap(buf)
-	if err.Error() != attributeNotSetError("EXT-X-MAP", "URI").Error() {
-		t.Fatalf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MAP", "URI").Error(), err.Error())
+	m.writeMap(buf)
+	if buf.err.Error() != attributeNotSetError("EXT-X-MAP", "URI").Error() {
+		t.Fatalf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MAP", "URI").Error(), buf.err.Error())
 	}
 
 	buf = NewBufWrapper()
 	m.URI = "test"
-	err = m.writeMap(buf)
-	if err != nil {
+	m.writeMap(buf)
+	if buf.err != nil {
 		t.Error("Expected err to be nil")
 	}
 

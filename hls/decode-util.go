@@ -73,15 +73,15 @@ func decodeRendition(line string) *Rendition {
 		case "NAME":
 			rendition.Name = v
 		case "DEFAULT":
-			if v == boolYes {
+			if strings.EqualFold(v, boolYes) {
 				rendition.Default = true
 			}
 		case "AUTOSELECT":
-			if v == boolYes {
+			if strings.EqualFold(v, boolYes) {
 				rendition.AutoSelect = true
 			}
 		case "FORCED":
-			if v == boolYes {
+			if strings.EqualFold(v, boolYes) {
 				rendition.Forced = true
 			}
 		case "INSTREAM-ID":
@@ -124,8 +124,11 @@ func decodeInf(line string) (*Inf, error) {
 }
 
 func decodeDateRange(line string) (*DateRange, error) {
-	drMap := splitParams(line)
 	var err error
+	var d float64
+	var pd float64
+	drMap := splitParams(line)
+
 	dr := &DateRange{}
 	for k, v := range drMap {
 		switch {
@@ -138,13 +141,13 @@ func decodeDateRange(line string) (*DateRange, error) {
 		case k == "END-DATE":
 			dr.EndDate, err = decodeDateTime(v)
 		case k == "DURATION":
-			if d, err := strconv.ParseFloat(v, 64); err == nil {
+			if d, err = strconv.ParseFloat(v, 64); err == nil {
 				dr.Duration = &d
 			} else {
 				return nil, err
 			}
 		case k == "PLANNED-DURATION":
-			if pd, err := strconv.ParseFloat(v, 64); err == nil {
+			if pd, err = strconv.ParseFloat(v, 64); err == nil {
 				dr.PlannedDuration = &pd
 			} else {
 				return nil, err
@@ -153,7 +156,7 @@ func decodeDateRange(line string) (*DateRange, error) {
 			dr.XClientAttribute = append(dr.XClientAttribute, fmt.Sprintf("%s=%s", k, v))
 		case strings.HasPrefix(k, "SCTE35"):
 			dr.SCTE35 = decodeSCTE(k, v)
-		case k == "END-ON-NEXT" && v == boolYes:
+		case k == "END-ON-NEXT" && strings.EqualFold(v, boolYes):
 			dr.EndOnNext = true
 		}
 	}
@@ -243,7 +246,7 @@ func decodeStartPoint(line string) (*StartPoint, error) {
 				return nil, err
 			}
 		case "PRECISE":
-			if v == boolYes {
+			if strings.EqualFold(v, boolYes) {
 				sp.Precise = true
 			}
 		}

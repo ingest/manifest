@@ -17,7 +17,7 @@ func TestReadMasterPlaylistFile(t *testing.T) {
 	p := &MasterPlaylist{}
 	err = p.ReadManifest(bufio.NewReader(f))
 	if err != io.EOF {
-		t.Errorf("Expected err to be EOF, but got %s", err)
+		t.Fatalf("Expected err to be EOF, but got %s", err)
 	}
 	if len(p.SessionData) != 2 {
 		t.Errorf("Expected SessionData len 2, but got %d", len(p.SessionData))
@@ -27,6 +27,10 @@ func TestReadMasterPlaylistFile(t *testing.T) {
 		t.Errorf("Expected Variants len 14, but got %d", len(p.Variants))
 	}
 
+	if len(p.Variants[0].Renditions) != 5 {
+		t.Errorf("Expected Renditions len 5, but got %d", len(p.Variants[0].Renditions))
+	}
+
 	k := &Key{Method: "SAMPLE-AES", IV: "0x29fd9eba3735966ddfca572e51e68ff2", Keyformat: "com.apple.streamingkeydelivery", Keyformatversions: "1"}
 	if p.SessionKeys != nil {
 		if !reflect.DeepEqual(k, p.SessionKeys[0]) {
@@ -34,7 +38,6 @@ func TestReadMasterPlaylistFile(t *testing.T) {
 		}
 	}
 
-	//TODO:add more checks
 }
 
 func TestReadMediaPlaylistFile(t *testing.T) {
@@ -44,13 +47,25 @@ func TestReadMediaPlaylistFile(t *testing.T) {
 	}
 	p := &MediaPlaylist{}
 	p.ReadManifest(bufio.NewReader(f))
+
+	if p.TargetDuration != 10 {
+		t.Errorf("Expected TargetDuration 10, but got %d", p.TargetDuration)
+	}
+
+	if p.StartPoint.TimeOffset != 8.345 {
+		t.Errorf("Expected StartPoint to be 8.345, but got %v", p.StartPoint.TimeOffset)
+	}
 	if p.Segments != nil {
 		if len(p.Segments) != 6 {
 			t.Errorf("Expected len Segments 6, but got %d", len(p.Segments))
 		}
+		sd, _ := time.Parse(time.RFC3339Nano, "2010-02-19T14:54:23.031+08:00")
+		dr := &DateRange{ID: "6FFF00", StartDate: sd, SCTE35: &SCTE35{Type: "OUT", Value: "0xFC002F0000000000FF0"}}
+		if !reflect.DeepEqual(p.Segments[0].DateRange, dr) {
+			t.Errorf("Expected DateRange to be %v, but got %v", dr, p.Segments[0].DateRange)
+		}
 	}
 
-	//TODO:add more checks
 }
 
 func TestReadMediaPlaylist(t *testing.T) {
@@ -96,6 +111,7 @@ func TestReadMediaPlaylist(t *testing.T) {
 	p.M3U = true
 
 	buf, err := p.GenerateManifest()
+
 	newP := NewMediaPlaylist(7)
 	err = newP.ReadManifest(buf)
 	if err != io.EOF {

@@ -35,7 +35,6 @@ type MediaPlaylist struct {
 
 //Segment represents the Media Segment object
 type Segment struct {
-	ID              int //Sequence number
 	URI             string
 	Inf             *Inf //Required.
 	Byterange       *Byterange
