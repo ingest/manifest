@@ -1,33 +1,30 @@
 package hls
 
 import (
-	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
 func decodeVariant(line string, isIframe bool) (*Variant, error) {
-	fmt.Println(line)
-	vMap, err := splitParams(line)
-	if err != nil {
-		return nil, err
-	}
+	var err error
+	vMap := splitParams(line)
 	variant := &Variant{}
 
 	for k, v := range vMap {
 		switch k {
 		case "BANDWIDTH":
-			variant.Bandwidth, err = strconv.ParseInt(v, 10, 64)
+			variant.Bandwidth, err = parseInt(v, 10, 64)
 		case "AVERAGE-BANDWIDTH":
-			variant.AvgBandwidth, err = strconv.ParseInt(v, 10, 64)
+			variant.AvgBandwidth, err = parseInt(v, 10, 64)
 		case "CODECS":
 			variant.Codecs = v
 		case "RESOLUTION":
 			variant.Resolution = v
 		case "FRAME-RATE":
-			variant.FrameRate, err = strconv.ParseFloat(v, 64)
+			variant.FrameRate, err = parseFloat(v, 64)
 		case "AUDIO":
 			variant.Audio = v
 		case "VIDEO":
@@ -49,11 +46,26 @@ func decodeVariant(line string, isIframe bool) (*Variant, error) {
 	return variant, err
 }
 
-func decodeRendition(line string) (*Rendition, error) {
-	rMap, err := splitParams(line)
+//parseInt wraps strconv.ParseInt
+func parseInt(s string, base int, bitSize int) (int64, error) {
+	d, err := strconv.ParseInt(s, base, bitSize)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
+	return d, err
+}
+
+//parseFloat wraps strconv.ParseFloat
+func parseFloat(s string, bitSize int) (float64, error) {
+	f, err := strconv.ParseFloat(s, bitSize)
+	if err != nil {
+		return float64(0), err
+	}
+	return f, err
+}
+
+func decodeRendition(line string) *Rendition {
+	rMap := splitParams(line)
 
 	rendition := &Rendition{}
 	for k, v := range rMap {
@@ -92,14 +104,11 @@ func decodeRendition(line string) (*Rendition, error) {
 			rendition.Characteristics = v
 		}
 	}
-	return rendition, err
+	return rendition
 }
 
-func decodeSessionData(line string) (*SessionData, error) {
-	sdMap, err := splitParams(line)
-	if err != nil {
-		return nil, err
-	}
+func decodeSessionData(line string) *SessionData {
+	sdMap := splitParams(line)
 	sd := &SessionData{}
 	for k, v := range sdMap {
 		switch k {
@@ -113,23 +122,20 @@ func decodeSessionData(line string) (*SessionData, error) {
 			sd.Language = v
 		}
 	}
-	return sd, nil
+	return sd
 }
 
 func decodeInf(line string) (*Inf, error) {
-	d, err := strconv.ParseFloat(stringBefore(line, ","), 64)
-	if err != nil {
-		return nil, err
-	}
-	i := &Inf{Duration: d, Title: stringAfter(line, ",")}
+	var err error
+	i := &Inf{}
+	i.Duration, err = parseFloat(stringBefore(line, ","), 64)
+	i.Title = stringAfter(line, ",")
 	return i, err
 }
 
 func decodeDateRange(line string) (*DateRange, error) {
-	drMap, err := splitParams(line)
-	if err != nil {
-		return nil, err
-	}
+	drMap := splitParams(line)
+	var err error
 	dr := &DateRange{}
 	for k, v := range drMap {
 		switch {
@@ -183,11 +189,8 @@ func decodeDateTime(line string) (time.Time, error) {
 }
 
 func decodeMap(line string) (*Map, error) {
-	mMap, err := splitParams(line)
-	if err != nil {
-		return nil, err
-	}
-
+	mMap := splitParams(line)
+	var err error
 	m := &Map{}
 	for k, v := range mMap {
 		switch k {
@@ -200,7 +203,7 @@ func decodeMap(line string) (*Map, error) {
 	return m, err
 }
 
-//TODO: Improve this
+//TODO:Improve this
 func decodeByterange(value string) (*Byterange, error) {
 	params := strings.Split(value, "@")
 	l, err := strconv.ParseInt(params[0], 10, 64)
@@ -218,11 +221,8 @@ func decodeByterange(value string) (*Byterange, error) {
 	return b, nil
 }
 
-func decodeKey(line string) (*Key, error) {
-	keyMap, err := splitParams(line)
-	if err != nil {
-		return nil, err
-	}
+func decodeKey(line string) *Key {
+	keyMap := splitParams(line)
 
 	key := &Key{}
 	for k, v := range keyMap {
@@ -239,24 +239,17 @@ func decodeKey(line string) (*Key, error) {
 			key.Keyformatversions = v
 		}
 	}
-	return key, nil
+	return key
 }
 
 func decodeStartPoint(line string) (*StartPoint, error) {
-	spMap, err := splitParams(line)
-	if err != nil {
-		return nil, err
-	}
-
+	spMap := splitParams(line)
+	var err error
 	sp := &StartPoint{}
 	for k, v := range spMap {
 		switch k {
 		case "TIME-OFFSET":
-			if to, err := strconv.ParseFloat(v, 64); err == nil {
-				sp.TimeOffset = to
-			} else {
-				return nil, err
-			}
+			sp.TimeOffset, err = parseFloat(v, 64)
 		case "PRECISE":
 			if v == boolYes {
 				sp.Precise = true
@@ -282,19 +275,13 @@ func stringBefore(line string, char string) (ret string) {
 	return
 }
 
-//TODO: Try to improve this. Regex?
-//add regex to ignore comma inside double quotes. IE. CODECS att.
-func splitParams(line string) (map[string]string, error) {
-	params := strings.Split(line, ",")
+//TODO: Improve this to check for badly formatted attributes?
+func splitParams(line string) map[string]string {
+	re := regexp.MustCompile(`([a-zA-Z\d_-]+)=("[^"]+"|[^",]+)`)
 	m := make(map[string]string)
-	for _, p := range params {
-		att := strings.Split(p, "=")
-		if len(att) == 2 {
-			k, v := att[0], att[1]
-			m[strings.ToUpper(k)] = strings.Trim(v, "\"")
-		} else {
-			return nil, errors.New("Badly formatted attribute list")
-		}
+	for _, kv := range re.FindAllStringSubmatch(line, -1) {
+		k, v := kv[1], kv[2]
+		m[strings.ToUpper(k)] = strings.Trim(v, "\"")
 	}
-	return m, nil
+	return m
 }

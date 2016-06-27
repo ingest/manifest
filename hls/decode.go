@@ -16,7 +16,6 @@ func (p *MasterPlaylist) ReadManifest(reader io.Reader) error {
 	var eof bool
 	var line string
 	key := &Key{}
-	data := &SessionData{}
 	variant := &Variant{}
 	r := &Rendition{}
 	var renditions []*Rendition
@@ -30,8 +29,7 @@ func (p *MasterPlaylist) ReadManifest(reader io.Reader) error {
 				break
 			}
 		}
-
-		if len(line) < 1 {
+		if len(line) <= 1 {
 			continue
 		}
 		line = strings.TrimSpace(line)
@@ -52,19 +50,16 @@ func (p *MasterPlaylist) ReadManifest(reader io.Reader) error {
 			p.IndependentSegments = true
 
 		case strings.HasPrefix(line, "#EXT-X-SESSION-KEY"):
-			if key, buf.err = decodeKey(stringAfter(line, ":")); buf.err == nil {
-				p.SessionKeys = append(p.SessionKeys, key)
-			}
+			key = decodeKey(stringAfter(line, ":"))
+			p.SessionKeys = append(p.SessionKeys, key)
 
 		case strings.HasPrefix(line, "#EXT-X-SESSION-DATA"):
-			if data, buf.err = decodeSessionData(stringAfter(line, ":")); buf.err == nil {
-				p.SessionData = append(p.SessionData, data)
-			}
+			data := decodeSessionData(stringAfter(line, ":"))
+			p.SessionData = append(p.SessionData, data)
 
 		case strings.HasPrefix(line, "#EXT-X-MEDIA"):
-			if r, buf.err = decodeRendition(stringAfter(line, ":")); buf.err == nil {
-				renditions = append(renditions, r)
-			}
+			r = decodeRendition(stringAfter(line, ":"))
+			renditions = append(renditions, r)
 
 		//Case line is playlist uri, tag before is EXT-X-STREAM-INF.
 		//Append variant to MasterPlaylist and restart variables
@@ -115,7 +110,7 @@ func (p *MediaPlaylist) ReadManifest(reader io.Reader) error {
 			}
 		}
 
-		if len(line) < 1 {
+		if len(line) <= 1 {
 			continue
 		}
 		line = strings.TrimSpace(line)
@@ -158,9 +153,8 @@ func (p *MediaPlaylist) ReadManifest(reader io.Reader) error {
 
 			//check segment tags, if line is uri, append segment to p.Segments and restart segment
 		case strings.HasPrefix(line, "#EXT-X-KEY"):
-			if key, buf.err = decodeKey(stringAfter(line, ":")); buf.err == nil {
-				segment.Keys = append(segment.Keys, key)
-			}
+			key = decodeKey(stringAfter(line, ":"))
+			segment.Keys = append(segment.Keys, key)
 		case strings.HasPrefix(line, "#EXT-X-MAP"):
 			segment.Map, buf.err = decodeMap(stringAfter(line, ":"))
 		case strings.HasPrefix(line, "#EXT-X-PROGRAM-DATE-TIME"):

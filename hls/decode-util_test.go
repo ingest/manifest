@@ -2,7 +2,6 @@ package hls
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"os"
 	"reflect"
@@ -23,6 +22,18 @@ func TestReadMasterPlaylistFile(t *testing.T) {
 	if len(p.SessionData) != 2 {
 		t.Errorf("Expected SessionData len 2, but got %d", len(p.SessionData))
 	}
+
+	if len(p.Variants) != 14 {
+		t.Errorf("Expected Variants len 14, but got %d", len(p.Variants))
+	}
+
+	k := &Key{Method: "SAMPLE-AES", IV: "0x29fd9eba3735966ddfca572e51e68ff2", Keyformat: "com.apple.streamingkeydelivery", Keyformatversions: "1"}
+	if p.SessionKeys != nil {
+		if !reflect.DeepEqual(k, p.SessionKeys[0]) {
+			t.Errorf("Expected SessionKeys to be %v, but got %v", k, p.SessionKeys[0])
+		}
+	}
+
 	//TODO:add more checks
 }
 
@@ -33,15 +44,18 @@ func TestReadMediaPlaylistFile(t *testing.T) {
 	}
 	p := &MediaPlaylist{}
 	p.ReadManifest(bufio.NewReader(f))
-	for _, s := range p.Segments {
-		if s.DateRange != nil {
-			fmt.Println(s.DateRange.StartDate)
+	if p.Segments != nil {
+		if len(p.Segments) != 6 {
+			t.Errorf("Expected len Segments 6, but got %d", len(p.Segments))
 		}
 	}
+
+	//TODO:add more checks
 }
 
 func TestReadMediaPlaylist(t *testing.T) {
 	offset := int64(700)
+	duration := float64(200)
 	pt, _ := time.Parse(time.RFC3339Nano, "2016-06-22T15:33:52.199039986Z")
 	seg := &Segment{
 		URI:       "segment.com",
@@ -62,7 +76,7 @@ func TestReadMediaPlaylist(t *testing.T) {
 		Byterange: &Byterange{Length: 4000},
 		Keys:      []*Key{&Key{Method: "sample-aes", URI: "keyuri"}},
 		Map:       &Map{URI: "map2"},
-		DateRange: &DateRange{ID: "test", StartDate: pt},
+		DateRange: &DateRange{ID: "test", StartDate: pt, Duration: &duration},
 	}
 
 	seg3 := &Segment{
@@ -82,7 +96,6 @@ func TestReadMediaPlaylist(t *testing.T) {
 	p.M3U = true
 
 	buf, err := p.GenerateManifest()
-	fmt.Println(err)
 	newP := NewMediaPlaylist(7)
 	err = newP.ReadManifest(buf)
 	if err != io.EOF {
