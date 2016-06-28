@@ -2,14 +2,17 @@ package hls
 
 import "time"
 
+//TODO: See which consts are relevant to keep. Maybe not the att names
 const (
-	sub    = "SUBTITLES"
-	aud    = "AUDIO"
-	vid    = "VIDEO"
-	cc     = "CLOSED-CAPTIONS"
-	aes    = "AES-128"
-	none   = "NONE"
-	sample = "SAMPLE-AES"
+	sub     = "SUBTITLES"
+	aud     = "AUDIO"
+	vid     = "VIDEO"
+	cc      = "CLOSED-CAPTIONS"
+	aes     = "AES-128"
+	none    = "NONE"
+	sample  = "SAMPLE-AES"
+	boolYes = "YES"
+	boolNo  = "NO"
 )
 
 //MediaPlaylist represents a Media Playlist object and its tags.

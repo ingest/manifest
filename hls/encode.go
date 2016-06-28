@@ -4,31 +4,35 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"sort"
 	"strings"
 )
 
-//GenerateManifest writes a Master Playlist file
-func (p *MasterPlaylist) GenerateManifest() (io.Reader, error) {
-	buf := NewBufWriter()
+//Encode writes a Master Playlist file
+func (p *MasterPlaylist) Encode() (io.Reader, error) {
+	buf := NewBufWrapper()
 
 	//Write header tags
-	if err := writeHeader(p.Version, buf); err != nil {
-		return nil, err
+	writeHeader(p.Version, buf)
+	if buf.err != nil {
+		return nil, buf.err
 	}
 
 	//Write Session Data tags if enabled
 	if p.SessionData != nil {
 		for _, sd := range p.SessionData {
-			if err := sd.writeSessionData(buf); err != nil {
-				return nil, err
+			sd.writeSessionData(buf)
+			if buf.err != nil {
+				return nil, buf.err
 			}
 		}
 	}
 	//write session keys tags if enabled
 	if p.SessionKeys != nil {
 		for _, sk := range p.SessionKeys {
-			if err := sk.writeKey(buf); err != nil {
-				return nil, err
+			sk.writeKey(buf)
+			if buf.err != nil {
+				return nil, buf.err
 			}
 		}
 	}
@@ -37,8 +41,9 @@ func (p *MasterPlaylist) GenerateManifest() (io.Reader, error) {
 	writeIndependentSegment(p.IndependentSegments, buf)
 
 	//write Start tag if enabled
-	if err := writeStartPoint(p.StartPoint, buf); err != nil {
-		return nil, err
+	writeStartPoint(p.StartPoint, buf)
+	if buf.err != nil {
+		return nil, buf.err
 	}
 
 	//For every Variant, write rendition and variant tags if enabled
@@ -50,13 +55,15 @@ func (p *MasterPlaylist) GenerateManifest() (io.Reader, error) {
 					if strings.HasPrefix(strings.ToUpper(rendition.InstreamID), "SERVICE") && p.Version < 7 {
 						return nil, backwardsCompatibilityError(p.Version, "#EXT-X-MEDIA")
 					}
-					if err := rendition.writeXMedia(buf); err != nil {
-						return nil, err
+					rendition.writeXMedia(buf)
+					if buf.err != nil {
+						return nil, buf.err
 					}
 				}
 			}
-			if err := variant.writeStreamInf(p.Version, buf); err != nil {
-				return nil, err
+			variant.writeStreamInf(p.Version, buf)
+			if buf.err != nil {
+				return nil, buf.err
 			}
 		}
 	}
@@ -64,13 +71,14 @@ func (p *MasterPlaylist) GenerateManifest() (io.Reader, error) {
 	return bytes.NewReader(buf.buf.Bytes()), buf.err
 }
 
-//GenerateManifest writes a Media Playlist file
-func (p *MediaPlaylist) GenerateManifest() (io.Reader, error) {
-	buf := NewBufWriter()
+//Encode writes a Media Playlist file
+func (p *MediaPlaylist) Encode() (io.Reader, error) {
+	buf := NewBufWrapper()
 
 	//write header tags
-	if err := writeHeader(p.Version, buf); err != nil {
-		return nil, err
+	writeHeader(p.Version, buf)
+	if buf.err != nil {
+		return nil, buf.err
 	}
 	//write Target Duration tag
 	if err := p.writeTargetDuration(buf); err != nil {
@@ -89,18 +97,21 @@ func (p *MediaPlaylist) GenerateManifest() (io.Reader, error) {
 	//write Allow Cache tag if enabled
 	p.writeAllowCache(buf)
 	//write I-Frames Only if enabled
-	if err := p.writeIFramesOnly(buf); err != nil {
-		return nil, err
+	p.writeIFramesOnly(buf)
+	if buf.err != nil {
+		return nil, buf.err
 	}
 
 	//write segment tags
 	if p.Segments != nil {
+		sort.Sort(BySegID(p.Segments))
 		for _, segment := range p.Segments {
 			if err := p.checkCompatibility(segment); err != nil {
 				return nil, err
 			}
-			if err := segment.writeSegmentTags(buf); err != nil {
-				return nil, err
+			segment.writeSegmentTags(buf)
+			if buf.err != nil {
+				return nil, buf.err
 			}
 		}
 	} else {

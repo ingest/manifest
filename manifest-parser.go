@@ -2,8 +2,8 @@ package m3u8
 
 import "io"
 
-//ManifestParser is the interface for the Generate and Read manifest methods
-type ManifestParser interface {
-	GenerateManifest() (io.Reader, error)
-	ReadManifest(reader io.Reader) error
+//Manifest is the interface for the Generate and Read manifest methods
+type Manifest interface {
+	Encode() (io.Reader, error)
+	Parse(reader io.Reader) error
 }
