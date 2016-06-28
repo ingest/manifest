@@ -270,7 +270,6 @@ func stringBefore(line string, char string) (ret string) {
 	return
 }
 
-//TODO: Improve this to check for badly formatted attributes?
 func splitParams(line string) map[string]string {
 	re := regexp.MustCompile(`([a-zA-Z\d_-]+)=("[^"]+"|[^",]+)`)
 	m := make(map[string]string)

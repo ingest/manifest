@@ -99,21 +99,21 @@ func (r *Rendition) writeXMedia(buf *BufWrapper) {
 		buf.WriteValidString(r.Language, fmt.Sprintf(",LANGUAGE=\"%s\"", r.Language))
 		buf.WriteValidString(r.AssocLanguage, fmt.Sprintf(",ASSOC-LANGUAGE=\"%s\"", r.AssocLanguage))
 		buf.WriteValidString(r.Default, ",DEFAULT=YES")
-		if r.Forced && strings.ToUpper(r.Type) == sub {
+		if r.Forced && strings.EqualFold(r.Type, sub) {
 			buf.WriteValidString(r.Forced, ",FORCED=YES")
 		}
-		if strings.ToUpper(r.Type) == cc && isValidInstreamID(strings.ToUpper(r.InstreamID)) {
+		if strings.EqualFold(r.Type, cc) && isValidInstreamID(strings.ToUpper(r.InstreamID)) {
 			buf.WriteValidString(r.InstreamID, fmt.Sprintf(",INSTREAM-ID=\"%s\"", r.InstreamID))
 		}
 		buf.WriteValidString(r.Characteristics, fmt.Sprintf(",CHARACTERISTICS=\"%s\"", r.Characteristics))
 
 		//URI is required for SUBTITLES and MUST NOT be present for CLOSED-CAPTIONS, other types URI is optinal
-		if strings.ToUpper(r.Type) == sub {
+		if strings.EqualFold(r.Type, sub) {
 			if !buf.WriteValidString(r.URI, fmt.Sprintf(",URI=\"%s\"", r.URI)) {
 				buf.err = attributeNotSetError("EXT-X-MEDIA", "URI for SUBTITLES")
 				return
 			}
-		} else if strings.ToUpper(r.Type) != cc {
+		} else if !strings.EqualFold(r.Type, cc) {
 			buf.WriteValidString(r.URI, fmt.Sprintf(",URI=\"%s\"", r.URI))
 		}
 
