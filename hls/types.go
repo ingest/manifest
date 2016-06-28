@@ -91,3 +91,16 @@ func (b *BufWrapper) ReadString(delim byte) (line string) {
 	line, b.err = b.buf.ReadString(delim)
 	return
 }
+
+//BySegID implements Sort interface to sort Segment slice
+type BySegID []*Segment
+
+func (s BySegID) Len() int {
+	return len(s)
+}
+func (s BySegID) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s BySegID) Less(i, j int) bool {
+	return s[i].ID < s[j].ID
+}

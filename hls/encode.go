@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"sort"
 	"strings"
 )
 
-//GenerateManifest writes a Master Playlist file
-func (p *MasterPlaylist) GenerateManifest() (io.Reader, error) {
+//Encode writes a Master Playlist file
+func (p *MasterPlaylist) Encode() (io.Reader, error) {
 	buf := NewBufWrapper()
 
 	//Write header tags
@@ -70,8 +71,8 @@ func (p *MasterPlaylist) GenerateManifest() (io.Reader, error) {
 	return bytes.NewReader(buf.buf.Bytes()), buf.err
 }
 
-//GenerateManifest writes a Media Playlist file
-func (p *MediaPlaylist) GenerateManifest() (io.Reader, error) {
+//Encode writes a Media Playlist file
+func (p *MediaPlaylist) Encode() (io.Reader, error) {
 	buf := NewBufWrapper()
 
 	//write header tags
@@ -103,6 +104,7 @@ func (p *MediaPlaylist) GenerateManifest() (io.Reader, error) {
 
 	//write segment tags
 	if p.Segments != nil {
+		sort.Sort(BySegID(p.Segments))
 		for _, segment := range p.Segments {
 			if err := p.checkCompatibility(segment); err != nil {
 				return nil, err

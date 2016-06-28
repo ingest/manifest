@@ -121,10 +121,12 @@ func (r *Rendition) writeXMedia(buf *BufWrapper) {
 	}
 }
 
+//isValidType checks rendition Type is supported value (AUDIO, VIDEO, CLOSED-CAPTIONS or SUBTITLES)
 func isValidType(t string) bool {
 	return t == aud || t == vid || t == cc || t == sub
 }
 
+//isValidInstreamID checks rendition InstreamID is supported value
 func isValidInstreamID(instream string) bool {
 	return instream == "CC1" || instream == "CC2" || instream == "CC3" || instream == "CC4" || strings.HasPrefix(instream, "SERVICE")
 }
@@ -184,7 +186,7 @@ func (p *MediaPlaylist) writeDiscontinuitySequence(buf *BufWrapper) {
 
 func (p *MediaPlaylist) writeAllowCache(buf *BufWrapper) {
 	if p.Version < 7 && p.AllowCache {
-		buf.WriteString("#EXT-X-ALLOW-CACHE\n")
+		buf.WriteString("#EXT-X-ALLOW-CACHE:YES\n")
 	}
 }
 
@@ -279,7 +281,7 @@ func (k *Key) writeKey(buf *BufWrapper) {
 	}
 }
 
-//Session Key Method can't be NONE
+//isValidMethod checks Key Method value is supported. Session Key Method can't be NONE
 func isValidMethod(isSession bool, method string) bool {
 	return (method == aes || method == sample) || (!isSession && method == none)
 }

@@ -4,6 +4,6 @@ import "io"
 
 //Manifest is the interface for the Generate and Read manifest methods
 type Manifest interface {
-	GenerateManifest() (io.Reader, error)
-	ReadManifest(reader io.Reader) error
+	Encode() (io.Reader, error)
+	Parse(reader io.Reader) error
 }

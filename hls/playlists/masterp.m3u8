@@ -1,7 +1,7 @@
 #EXTM3U
 #EXT-X-VERSION:6
 #EXT-X-INDEPENDENT-SEGMENTS
-#EXT-X-SESSION-KEY:METHOD="SAMPLE-AES",IV=0x29fd9eba3735966ddfca572e51e68ff2,KEYFORMAT="com.apple.streamingkeydelivery",KEYFORMATVERSIONS="1"
+#EXT-X-SESSION-KEY:METHOD="SAMPLE-AES",IV=0x29fd9eba3735966ddfca572e51e68ff2,URI="com.keyuri.example",KEYFORMAT="com.apple.streamingkeydelivery",KEYFORMATVERSIONS="1"
 #EXT-X-SESSION-DATA:DATA-ID="com.example.title",LANGUAGE="en",VALUE="This is an example"
 #EXT-X-SESSION-DATA:DATA-ID="com.example.lyrics",URI="lyrics.json"
 #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="aud1",LANGUAGE="eng",NAME="English",AUTOSELECT=YES,DEFAULT=YES,URI="a1/prog_index.m3u8"

@@ -2,6 +2,7 @@ package hls
 
 import (
 	"bytes"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -150,7 +151,7 @@ func TestGenerateMasterPlaylist(t *testing.T) {
 	p.SessionData = []*SessionData{&SessionData{DataID: "test", Value: "this is the session data"}}
 	p.SessionKeys = []*Key{&Key{IsSession: true, Method: "sample-aes", URI: "keyuri"}}
 	p.IndependentSegments = true
-	buf, err := p.GenerateManifest()
+	buf, err := p.Encode()
 
 	if err != nil {
 		t.Fatalf("Expected err to be nil, but got %s", err.Error())
@@ -195,7 +196,7 @@ func TestGenerateMediaPlaylist(t *testing.T) {
 	p.MediaSequence = 1
 	p.StartPoint = &StartPoint{TimeOffset: 10.543}
 
-	buf, err := p.GenerateManifest()
+	buf, err := p.Encode()
 	if err != nil {
 		t.Fatalf("Expected err to be nil, but got %s", err.Error())
 	}
@@ -320,5 +321,28 @@ func TestCompatibilityCheck(t *testing.T) {
 	err = p.checkCompatibility(s)
 	if err.Error() != backwardsCompatibilityError(p.Version, "#EXT-X-BYTERANGE").Error() {
 		t.Errorf("Error should be %s, but got %s", backwardsCompatibilityError(p.Version, "#EXT-X-BYTERANGE").Error(), err.Error())
+	}
+}
+
+func TestSortSegments(t *testing.T) {
+	s := &Segment{
+		ID:  1,
+		URI: "firstsegment",
+	}
+	s2 := &Segment{
+		ID:  2,
+		URI: "secondsegment",
+	}
+	s3 := &Segment{
+		ID:  3,
+		URI: "thirdsegment",
+	}
+	var segs []*Segment
+	segs = append(segs, s3, s, s2)
+	sort.Sort(BySegID(segs))
+	for i := range segs {
+		if segs[i].ID != i+1 {
+			t.Errorf("Expected seg %d ID to be %d, but got %d", i, i+1, segs[i].ID)
+		}
 	}
 }

@@ -116,10 +116,11 @@ func decodeSessionData(line string) *SessionData {
 func decodeInf(line string) (*Inf, error) {
 	var err error
 	i := &Inf{}
-	if i.Duration, err = strconv.ParseFloat(stringBefore(line, ","), 64); err != nil {
+	index := strings.Index(line, ",")
+	if i.Duration, err = strconv.ParseFloat(line[0:index], 64); err != nil {
 		return nil, err
 	}
-	i.Title = stringAfter(line, ",")
+	i.Title = line[index+1 : len(line)]
 	return i, err
 }
 
@@ -196,7 +197,6 @@ func decodeMap(line string) (*Map, error) {
 	return m, err
 }
 
-//TODO:Improve this
 func decodeByterange(value string) (*Byterange, error) {
 	params := strings.Split(value, "@")
 	l, err := strconv.ParseInt(params[0], 10, 64)
@@ -214,10 +214,10 @@ func decodeByterange(value string) (*Byterange, error) {
 	return b, nil
 }
 
-func decodeKey(line string) *Key {
+func decodeKey(line string, isSession bool) *Key {
 	keyMap := splitParams(line)
 
-	key := &Key{}
+	key := &Key{IsSession: isSession}
 	for k, v := range keyMap {
 		switch k {
 		case "METHOD":
@@ -254,23 +254,9 @@ func decodeStartPoint(line string) (*StartPoint, error) {
 	return sp, err
 }
 
-func stringAfter(line string, char string) (ret string) {
-	index := strings.Index(line, char)
-	if index != -1 {
-		ret = line[index+1 : len(line)]
-	}
-	return
-}
-
-func stringBefore(line string, char string) (ret string) {
-	index := strings.Index(line, char)
-	if index != -1 {
-		ret = line[0:index]
-	}
-	return
-}
-
+//splitParams receives the comma-separated list of attributes and maps attribute-value pairs
 func splitParams(line string) map[string]string {
+	//regex to recognize att=val format and split on comma, unless comma is inside quotes
 	re := regexp.MustCompile(`([a-zA-Z\d_-]+)=("[^"]+"|[^",]+)`)
 	m := make(map[string]string)
 	for _, kv := range re.FindAllStringSubmatch(line, -1) {
@@ -278,4 +264,13 @@ func splitParams(line string) map[string]string {
 		m[strings.ToUpper(k)] = strings.Trim(v, "\"")
 	}
 	return m
+}
+
+//stringsIndex wraps string.Index and sets index = 0 if not found
+func stringsIndex(line string, char string) int {
+	index := strings.Index(line, char)
+	if index == -1 {
+		index = 0
+	}
+	return index
 }
