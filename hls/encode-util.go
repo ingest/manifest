@@ -165,11 +165,10 @@ func (v *Variant) writeStreamInf(version int, buf *BufWrapper) {
 	}
 }
 
-func (p *MediaPlaylist) writeTargetDuration(buf *BufWrapper) error {
+func (p *MediaPlaylist) writeTargetDuration(buf *BufWrapper) {
 	if !buf.WriteValidString(p.TargetDuration, fmt.Sprintf("#EXT-X-TARGETDURATION:%s\n", strconv.Itoa(p.TargetDuration))) {
-		return attributeNotSetError("EXT-X-TARGETDURATION", "")
+		buf.err = attributeNotSetError("EXT-X-TARGETDURATION", "")
 	}
-	return buf.err
 }
 
 func (p *MediaPlaylist) writeMediaSequence(buf *BufWrapper) {

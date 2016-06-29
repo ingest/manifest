@@ -81,8 +81,9 @@ func (p *MediaPlaylist) Encode() (io.Reader, error) {
 		return nil, buf.err
 	}
 	//write Target Duration tag
-	if err := p.writeTargetDuration(buf); err != nil {
-		return nil, err
+	p.writeTargetDuration(buf)
+	if buf.err != nil {
+		return nil, buf.err
 	}
 	//write Media Sequence tag if enabled
 	p.writeMediaSequence(buf)
