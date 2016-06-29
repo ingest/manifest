@@ -16,8 +16,9 @@ const (
 )
 
 //MediaPlaylist represents a Media Playlist object and its tags.
-//There MUST NOT be more than one tag per media playlist
-//#EXTM3U  MUST be first line
+//TODO:(sliding window) - add field for sliding window to represent either the max amount of segments
+//or the max duration of a window (TBD). Also would be useful to add variable to track the current first and last sequence numbers
+//as a helper to adding and removing segments and tracking MediaSequence, DiscontinuitySequence etc
 type MediaPlaylist struct {
 	M3U                   bool //Represents tag #EXTM3U. Indicates if present. MUST be present.
 	Version               int  //Represents tag #EXT-X-VERSION. MUST be present.
@@ -26,7 +27,7 @@ type MediaPlaylist struct {
 	MediaSequence         int    //Represents tag #EXT-X-MEDIA-SEQUENCE. Number of the first media sequence in the playlist.
 	DiscontinuitySequence int    //Represents tag #EXT-X-DISCONTINUITY-SEQUENCE. If present, MUST appear before the first Media Segment. MUST appear before any EXT-X-DISCONTINUITY Media Segment tag.
 	EndList               bool   //Represents tag #EXT-X-ENDLIST. Indicates no more media segments will be added to the playlist.
-	Type                  string //Possible Values: EVENT or VOD. Represents tag #EXT-X-PLAYLIST-TYPE. If EVENT - segments can only be added to the end of playlist. If VOD - playlist cannot change.
+	Type                  string //Possible Values: EVENT or VOD. Represents tag #EXT-X-PLAYLIST-TYPE. If EVENT - segments can only be added to the end of playlist. If VOD - playlist cannot change. If segments need to be removed from playlist, this tag MUST NOT be present
 	IFramesOnly           bool   //Represents tag #EXT-X-I-FRAMES-ONLY. If present, segments MUST begin with either a Media Initialization Section or have a EXT-X-MAP tag. TODO: check specs for some more requirements.
 	AllowCache            bool   //Possible Values: YES or NO. Represents tag #EXT-X-ALLOW-CACHE. Versions 3 - 6 only.
 	IndependentSegments   bool   //Represents tag #EXT-X-INDEPENDENT-SEGMENTS. Applies to every Media Segment in the playlist.

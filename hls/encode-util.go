@@ -158,9 +158,9 @@ func (v *Variant) writeStreamInf(version int, buf *BufWrapper) {
 			buf.WriteValidString(v.Audio, fmt.Sprintf(",AUDIO=\"%s\"", v.Audio))
 			buf.WriteValidString(v.Subtitles, fmt.Sprintf(",SUBTITLES=\"%s\"", v.Subtitles))
 			buf.WriteValidString(v.ClosedCaptions, fmt.Sprintf(",CLOSED-CAPTIONS=\"%s\"", v.ClosedCaptions))
-			buf.WriteString(fmt.Sprintf("\n%s\n\n", v.URI))
+			buf.WriteString(fmt.Sprintf("\n%s\n", v.URI))
 		} else {
-			buf.WriteValidString(v.URI, fmt.Sprintf(",URI=\"%s\"\n\n", v.URI))
+			buf.WriteValidString(v.URI, fmt.Sprintf(",URI=\"%s\"\n", v.URI))
 		}
 	}
 }
@@ -398,3 +398,12 @@ func (p *MediaPlaylist) checkCompatibility(s *Segment) error {
 	}
 	return nil
 }
+
+//TODO:(sliding window) - MediaPlaylist constructor receiving sliding window size. In the case of sliding window playlist, we
+//must not include a EXT-X-PLAYLIST-TYPE tag since EVENT and VOD don't support removing segments from the manifest.
+//TODO:(sliding window/live streaming) - Public method to add segment to a MediaPlaylist. This method would need helper methods, to check
+//sliding window size and remove segment when necessary. If playlist type is EVENT, only adds without removing.
+//Also helper methods to update MediaSequence and DiscontinuitySequence values
+//TODO:(sliding window/live streaming) - Public method to insert EXT-X-ENDLIST tag when EVENT or sliding window playlist reaches its end
+//TODO:(sliding window) - Figure out a way to control tags like KEY, MAP etc, that can be applicable to following segments.
+//What to do when that segment is removed (tags would in theory be removed with it)? Add methods to slide these tags along with the window.
