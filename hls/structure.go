@@ -1,8 +1,11 @@
+//Package hls implements the Manifest interface of package m3u8 to encode/parse
+//playlists used in HTTP Live Streaming. Comments explaining type attributes are
+//related to HLS Spec 'MUST' and 'MUST NOT' recommendations, and should be considered
+//when creating your MediaPlaylist and MasterPlaylist objects for encoding.
 package hls
 
 import "time"
 
-//TODO: See which consts are relevant to keep. Maybe not the att names
 const (
 	sub     = "SUBTITLES"
 	aud     = "AUDIO"
@@ -16,22 +19,24 @@ const (
 )
 
 //MediaPlaylist represents a Media Playlist object and its tags.
+//
 //TODO:(sliding window) - add field for sliding window to represent either the max amount of segments
 //or the max duration of a window (TBD). Also would be useful to add variable to track the current first and last sequence numbers
 //as a helper to adding and removing segments and tracking MediaSequence, DiscontinuitySequence etc
+//
 type MediaPlaylist struct {
 	M3U                   bool //Represents tag #EXTM3U. Indicates if present. MUST be present.
 	Version               int  //Represents tag #EXT-X-VERSION. MUST be present.
 	Segments              []*Segment
-	TargetDuration        int    //Required. Represents tag #EXT-X-TARGETDURATION. MUST BE >= EXTINF
-	MediaSequence         int    //Represents tag #EXT-X-MEDIA-SEQUENCE. Number of the first media sequence in the playlist.
-	DiscontinuitySequence int    //Represents tag #EXT-X-DISCONTINUITY-SEQUENCE. If present, MUST appear before the first Media Segment. MUST appear before any EXT-X-DISCONTINUITY Media Segment tag.
-	EndList               bool   //Represents tag #EXT-X-ENDLIST. Indicates no more media segments will be added to the playlist.
-	Type                  string //Possible Values: EVENT or VOD. Represents tag #EXT-X-PLAYLIST-TYPE. If EVENT - segments can only be added to the end of playlist. If VOD - playlist cannot change. If segments need to be removed from playlist, this tag MUST NOT be present
-	IFramesOnly           bool   //Represents tag #EXT-X-I-FRAMES-ONLY. If present, segments MUST begin with either a Media Initialization Section or have a EXT-X-MAP tag. TODO: check specs for some more requirements.
-	AllowCache            bool   //Possible Values: YES or NO. Represents tag #EXT-X-ALLOW-CACHE. Versions 3 - 6 only.
-	IndependentSegments   bool   //Represents tag #EXT-X-INDEPENDENT-SEGMENTS. Applies to every Media Segment in the playlist.
-	StartPoint            *StartPoint
+	TargetDuration        int         //Required. Represents tag #EXT-X-TARGETDURATION. MUST BE >= EXTINF
+	MediaSequence         int         //Represents tag #EXT-X-MEDIA-SEQUENCE. Number of the first media sequence in the playlist.
+	DiscontinuitySequence int         //Represents tag #EXT-X-DISCONTINUITY-SEQUENCE. If present, MUST appear before the first Media Segment. MUST appear before any EXT-X-DISCONTINUITY Media Segment tag.
+	EndList               bool        //Represents tag #EXT-X-ENDLIST. Indicates no more media segments will be added to the playlist.
+	Type                  string      //Possible Values: EVENT or VOD. Represents tag #EXT-X-PLAYLIST-TYPE. If EVENT - segments can only be added to the end of playlist. If VOD - playlist cannot change. If segments need to be removed from playlist, this tag MUST NOT be present
+	IFramesOnly           bool        //Represents tag #EXT-X-I-FRAMES-ONLY. If present, segments MUST begin with either a Media Initialization Section or have a EXT-X-MAP tag.
+	AllowCache            bool        //Possible Values: YES or NO. Represents tag #EXT-X-ALLOW-CACHE. Versions 3 - 6 only.
+	IndependentSegments   bool        //Represents tag #EXT-X-INDEPENDENT-SEGMENTS. Applies to every Media Segment in the playlist.
+	StartPoint            *StartPoint //Represents tag #EXT-X-START
 }
 
 //Segment represents the Media Segment object
@@ -53,8 +58,8 @@ type Inf struct {
 	Title    string
 }
 
-//Byterange represents tag #EXT-X-BYTERANGE (V4 or higher) or Byterange attribute of #EXT-X-MAP
-//Format:<length>[@<offset>].
+//Byterange represents tag #EXT-X-BYTERANGE (V4 or higher) or a Byterange attribute of tag #EXT-X-MAP.
+//Format: length[@offset].
 type Byterange struct {
 	Length int64
 	Offset *int64
@@ -67,19 +72,19 @@ type Key struct {
 	Method            string //Required. Possible Values: NONE, AES-128, SAMPLE-AES. If NONE, other attributes MUST NOT be present.
 	URI               string //Required unless the method is NONE. Specifies how to get the key for the encryption method.
 	IV                string //Optional. Hexadecimal that specifies a 128-bit int Initialization Vector to be used with the key.
-	Keyformat         string //Optional. Specifies how the key is represented in the resource. Default value is "identity". V5 or higher
+	Keyformat         string //Optional. Specifies how the key is represented in the resource. V5 or higher
 	Keyformatversions string //Optional. Indicates which Keyformat versions this instance complies with. Default value is 1. V5 or higher
 }
 
 //Map represents tag #EXT-X-MAP:<attribute=value>. Specifies how to get the Media Initialization Section
 type Map struct {
 	URI       string     //Required.
-	Byterange *Byterange //Optional. Byte range into the URI resource containing the Media Initialization Section.
+	Byterange *Byterange //Optional. Indicates the byte range into the URI resource containing the Media Initialization Section.
 }
 
 //DateRange represents tag #EXT-X-DATERANGE:<attribute=value>.
+//
 //If present, it MUST also contain an EXT-X-PROGRAM-DATE-TIME tag.
-//Every date range with the same class att MUST adhere to these attribute-value semantics.
 //Tags with the same Class MUST NOT indicate ranges that overlap.
 type DateRange struct {
 	ID               string    //Required. If more than one tag with same ID exists, att values MUST be the same.
@@ -95,7 +100,7 @@ type DateRange struct {
 
 //SCTE35 represents a DateRange attribute SCTE35-OUT, SCTE35-IN or SCTE35-CMD
 type SCTE35 struct {
-	Type  string //IN, OUT, CMD
+	Type  string //Possible Values: IN, OUT, CMD
 	Value string //big-endian binary representation of the splice_info_section(), expressed as a hexadecimal-sequence.
 }
 
@@ -111,8 +116,8 @@ type MasterPlaylist struct {
 }
 
 //Variant represents tag #EXT-X-STREAM-INF:<attribute-list> and tag #EXT-X-I-FRAME-STREAM-INF
-//#EXT-X-I-FRAME-STREAM-INF excludes parameters Audio, Subtitles and ClosedCaptions
 //Specifies a Variant Stream (group of renditions). A URI line following the tag indicates the Media Playlist carrying a rendition of the Variant Stream and it MUST be present.
+//#EXT-X-I-FRAME-STREAM-INF doesn't support parameters Audio, Subtitles and ClosedCaptions.
 //TODO: check specs for more requirements.
 type Variant struct {
 	Renditions     []*Rendition
@@ -131,14 +136,13 @@ type Variant struct {
 	//If NONE, all EXT-X-STREAM-INF MUST have this attribute as NONE. If quoted-string, MUST match GroupID value of an EXT-X-MEDIA tag whose Type is CLOSED-CAPTIONS.
 }
 
-//Rendition represents the tag #EXT-X-MEDIA
-//Relates Media Playlists with alternative renditions of the same content. Eg. audio only playlists containing English, French and Spanish renditions of the same content.
-//One or more X-MEDIA tags with same GroupID and Type sets a group of renditions and MUST meet the following contraints:
+//Rendition represents the tag #EXT-X-MEDIA.
+//Relates Media Playlists with alternative renditions of the same content. Eg. Audio only playlists containing English, French and Spanish renditions of the same content.
+//One or more X-MEDIA tags with same GroupID and Type sets a group of renditions and MUST meet the following constraints:
 //  -Tags in the same group MUST have different Name att.
 //  -MUST NOT have more than one member with a Default att of YES
 //  -All members whose AutoSelect att is YES MUST have Language att with unique values
 //
-//TODO:See specs for more requirements
 type Rendition struct {
 	Type            string //Possible Values: AUDIO, VIDEO, SUBTITLES, CLOSED-CAPTIONS. Required.
 	URI             string //URI containing the media playlist. If type is CLOSED-CAPTIONS, URI MUST NOT be present.
@@ -147,7 +151,7 @@ type Rendition struct {
 	AssocLanguage   string //Optional. Language tag RFC5646
 	Name            string //Required. Description of the rendition. SHOULD be written in the same language as Language
 	Default         bool   //Possible Values: YES, NO. Optional. Defines if rendition should be played by client if user doesn't choose a rendition. Default: NO
-	AutoSelect      bool   //Possible Values: YES, NO. Optional. Client MAY choose this rendition if user doesn't choose one. if present, MUST be YES if Default is present and is YES. Default: NO.
+	AutoSelect      bool   //Possible Values: YES, NO. Optional. Client MAY choose this rendition if user doesn't choose one. if present, MUST be YES if Default=YES. Default: NO.
 	Forced          bool   //Possible Values: YES, NO. Optional. MUST NOT be present unless Type is SUBTITLES. Default: NO.
 	InstreamID      string //Specifies a rendition within the Media Playlist. MUST NOT be present unless Type is CLOSED-CAPTIONS. Possible Values: CC1, CC2, CC3, CC4, or SERVICEn where n is int between 1 - 63
 	Characteristics string //Optional. One or more Uniform Type Indentifiers separated by comma. Each UTI indicates an individual characteristic of the Rendition.

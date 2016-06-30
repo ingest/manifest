@@ -7,13 +7,13 @@ import (
 
 //When support for DASH is implemented we should probably move this to m3u8 package
 
-//BufWrapper is a wrapper type for bytes.Buffer
+//BufWrapper is a wrapper type for bytes.Buffer.
 type BufWrapper struct {
 	buf *bytes.Buffer
 	err error
 }
 
-//NewBufWrapper returns an instance of BufWrapper
+//NewBufWrapper returns an instance of BufWrapper.
 func NewBufWrapper() *BufWrapper {
 	return &BufWrapper{
 		buf: new(bytes.Buffer),
@@ -21,7 +21,8 @@ func NewBufWrapper() *BufWrapper {
 	}
 }
 
-//WriteValidString checks if data is set and writes on buffer using BufWrapper wrapper
+//WriteValidString receives an interface and performs a buffer.Write if data is set.
+//If returns true if value is set, and false if it isn't.
 func (b *BufWrapper) WriteValidString(data interface{}, write string) bool {
 	if b.err != nil {
 		return false
@@ -92,7 +93,7 @@ func (b *BufWrapper) ReadString(delim byte) (line string) {
 	return
 }
 
-//BySegID implements Sort interface to sort Segment slice
+//BySegID implements golang/sort interface to sort a Segment slice by Segment ID
 type BySegID []*Segment
 
 func (s BySegID) Len() int {

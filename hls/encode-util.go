@@ -153,13 +153,14 @@ func (v *Variant) writeStreamInf(version int, buf *BufWrapper) {
 		buf.WriteValidString(v.FrameRate, fmt.Sprintf(",FRAME-RATE=%s", strconv.FormatFloat(v.FrameRate, 'f', 3, 32)))
 		buf.WriteValidString(v.Video, fmt.Sprintf(",VIDEO=\"%s\"", v.Video))
 		//If is not IFrame tag, adds AUDIO, SUBTITLES and CLOSED-CAPTIONS params
-		//If IFrame, add URI as a param
 		if !v.IsIframe {
 			buf.WriteValidString(v.Audio, fmt.Sprintf(",AUDIO=\"%s\"", v.Audio))
 			buf.WriteValidString(v.Subtitles, fmt.Sprintf(",SUBTITLES=\"%s\"", v.Subtitles))
 			buf.WriteValidString(v.ClosedCaptions, fmt.Sprintf(",CLOSED-CAPTIONS=\"%s\"", v.ClosedCaptions))
+			//If not IFrame, URI is in its own line
 			buf.WriteString(fmt.Sprintf("\n%s\n", v.URI))
 		} else {
+			//If Iframe, URI is a param
 			buf.WriteValidString(v.URI, fmt.Sprintf(",URI=\"%s\"\n", v.URI))
 		}
 	}
