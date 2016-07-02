@@ -1,7 +1,3 @@
-//Package hls implements the Manifest interface of package m3u8 to encode/parse
-//playlists used in HTTP Live Streaming. Comments explaining type attributes are
-//related to HLS Spec 'MUST' and 'MUST NOT' recommendations, and should be considered
-//when creating your MediaPlaylist and MasterPlaylist objects for encoding.
 package hls
 
 import "time"
