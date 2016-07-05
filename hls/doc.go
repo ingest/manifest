@@ -13,8 +13,8 @@
 //    p := hls.NewMediaPlaylist(7)
 //    p.TargetDuration = 10
 //    p.EndList = true
-//    segment := &Segment{
-//      URI:       "segmenturi.com",
+//    segment := &hls.Segment{
+//      URI:       "segmenturi.ts",
 //      Inf:       &Inf{Duration: 9.052},
 //      Byterange: &Byterange{Length: 400},
 //    }
@@ -38,7 +38,7 @@
 //    if err != nil {
 //      //handle error
 //    }
-//    playlist := &MasterPlaylist{}
+//    playlist := &hls.MasterPlaylist{}
 //    if err = playlist.Parse(bufio.NewReader(f)); err!=io.EOF{
 //      //handle error
 //    }

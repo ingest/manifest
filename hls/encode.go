@@ -105,7 +105,7 @@ func (p *MediaPlaylist) Encode() (io.Reader, error) {
 
 	//write segment tags
 	if p.Segments != nil {
-		sort.Sort(BySegID(p.Segments))
+		sort.Sort(p.Segments)
 		for _, segment := range p.Segments {
 			if err := p.checkCompatibility(segment); err != nil {
 				return nil, err
