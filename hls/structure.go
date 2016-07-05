@@ -21,8 +21,7 @@ const (
 //as a helper to adding and removing segments and tracking MediaSequence, DiscontinuitySequence etc
 //
 type MediaPlaylist struct {
-	M3U                   bool //Represents tag #EXTM3U. Indicates if present. MUST be present.
-	Version               int  //Represents tag #EXT-X-VERSION. MUST be present.
+	Version               int //Represents tag #EXT-X-VERSION. MUST be present.
 	Segments              Segments
 	TargetDuration        int         //Required. Represents tag #EXT-X-TARGETDURATION. MUST BE >= EXTINF
 	MediaSequence         int         //Represents tag #EXT-X-MEDIA-SEQUENCE. Number of the first media sequence in the playlist.
