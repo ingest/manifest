@@ -22,7 +22,7 @@ func NewBufWrapper() *BufWrapper {
 }
 
 //WriteValidString receives an interface and performs a buffer.Write if data is set.
-//If returns true if value is set, and false if it isn't.
+//It returns true if value is set, and false if it isn't.
 func (b *BufWrapper) WriteValidString(data interface{}, write string) bool {
 	if b.err != nil {
 		return false
@@ -93,15 +93,15 @@ func (b *BufWrapper) ReadString(delim byte) (line string) {
 	return
 }
 
-//BySegID implements golang/sort interface to sort a Segment slice by Segment ID
-type BySegID []*Segment
+//Segments implements golang/sort interface to sort a Segment slice by Segment ID
+type Segments []*Segment
 
-func (s BySegID) Len() int {
+func (s Segments) Len() int {
 	return len(s)
 }
-func (s BySegID) Swap(i, j int) {
+func (s Segments) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
-func (s BySegID) Less(i, j int) bool {
+func (s Segments) Less(i, j int) bool {
 	return s[i].ID < s[j].ID
 }

@@ -337,9 +337,9 @@ func TestSortSegments(t *testing.T) {
 		ID:  3,
 		URI: "thirdsegment",
 	}
-	var segs []*Segment
+	var segs Segments
 	segs = append(segs, s3, s, s2)
-	sort.Sort(BySegID(segs))
+	sort.Sort(segs)
 	for i := range segs {
 		if segs[i].ID != i+1 {
 			t.Errorf("Expected seg %d ID to be %d, but got %d", i, i+1, segs[i].ID)

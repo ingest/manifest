@@ -118,7 +118,6 @@ func TestReadMediaPlaylist(t *testing.T) {
 	p.EndList = true
 	p.MediaSequence = 1
 	p.StartPoint = &StartPoint{TimeOffset: 10.543}
-	p.M3U = true
 
 	buf, err := p.Encode()
 

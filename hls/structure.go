@@ -14,16 +14,15 @@ const (
 	boolNo  = "NO"
 )
 
-//MediaPlaylist represents a Media Playlist object and its tags.
+//MediaPlaylist represents a Media Playlist and its tags.
 //
 //TODO:(sliding window) - add field for sliding window to represent either the max amount of segments
 //or the max duration of a window (TBD). Also would be useful to add variable to track the current first and last sequence numbers
 //as a helper to adding and removing segments and tracking MediaSequence, DiscontinuitySequence etc
 //
 type MediaPlaylist struct {
-	M3U                   bool //Represents tag #EXTM3U. Indicates if present. MUST be present.
-	Version               int  //Represents tag #EXT-X-VERSION. MUST be present.
-	Segments              []*Segment
+	Version               int //Represents tag #EXT-X-VERSION. MUST be present.
+	Segments              Segments
 	TargetDuration        int         //Required. Represents tag #EXT-X-TARGETDURATION. MUST BE >= EXTINF
 	MediaSequence         int         //Represents tag #EXT-X-MEDIA-SEQUENCE. Number of the first media sequence in the playlist.
 	DiscontinuitySequence int         //Represents tag #EXT-X-DISCONTINUITY-SEQUENCE. If present, MUST appear before the first Media Segment. MUST appear before any EXT-X-DISCONTINUITY Media Segment tag.
@@ -35,7 +34,7 @@ type MediaPlaylist struct {
 	StartPoint            *StartPoint //Represents tag #EXT-X-START
 }
 
-//Segment represents the Media Segment object
+//Segment represents the Media Segment and its tags
 type Segment struct {
 	ID              int //Sequence number
 	URI             string
@@ -80,7 +79,7 @@ type Map struct {
 
 //DateRange represents tag #EXT-X-DATERANGE:<attribute=value>.
 //
-//If present, it MUST also contain an EXT-X-PROGRAM-DATE-TIME tag.
+//If present, playlist MUST also contain at least one EXT-X-PROGRAM-DATE-TIME tag.
 //Tags with the same Class MUST NOT indicate ranges that overlap.
 type DateRange struct {
 	ID               string    //Required. If more than one tag with same ID exists, att values MUST be the same.
@@ -100,7 +99,7 @@ type SCTE35 struct {
 	Value string //big-endian binary representation of the splice_info_section(), expressed as a hexadecimal-sequence.
 }
 
-//MasterPlaylist represents a Master Playlist object and its tags
+//MasterPlaylist represents a Master Playlist and its tags
 type MasterPlaylist struct {
 	M3U                 bool //Represents tag #EXTM3U. Indicates if present. MUST be present.
 	Version             int  //Represents tag #EXT-X-VERSION. MUST be present.
@@ -111,10 +110,13 @@ type MasterPlaylist struct {
 	StartPoint          *StartPoint
 }
 
-//Variant represents tag #EXT-X-STREAM-INF:<attribute-list> and tag #EXT-X-I-FRAME-STREAM-INF
-//Specifies a Variant Stream (group of renditions). A URI line following the tag indicates the Media Playlist carrying a rendition of the Variant Stream and it MUST be present.
-//#EXT-X-I-FRAME-STREAM-INF doesn't support parameters Audio, Subtitles and ClosedCaptions.
-//TODO: check specs for more requirements.
+//Variant represents tag #EXT-X-STREAM-INF:<attribute-list> and tag #EXT-X-I-FRAME-STREAM-INF.
+//
+//EXT-X-STREAM-INF specifies a Variant Stream, which is a set of Renditions which can be combined to play the presentation.
+//A URI line following the tag indicates the Media Playlist carrying a rendition of the Variant Stream and it MUST be present.
+//
+//#EXT-X-I-FRAME-STREAM-INF identifies Media Playlist file containing the I-frames of a multimedia presentation.
+//It supports the same parameters as EXT-X-STREAM-INF except Audio, Subtitles and ClosedCaptions.
 type Variant struct {
 	Renditions     []*Rendition
 	IsIframe       bool    //Identifies if #EXT-X-STREAM-INF or #EXT-X-I-FRAME-STREAM-INF
@@ -132,8 +134,10 @@ type Variant struct {
 	//If NONE, all EXT-X-STREAM-INF MUST have this attribute as NONE. If quoted-string, MUST match GroupID value of an EXT-X-MEDIA tag whose Type is CLOSED-CAPTIONS.
 }
 
-//Rendition represents the tag #EXT-X-MEDIA.
-//Relates Media Playlists with alternative renditions of the same content. Eg. Audio only playlists containing English, French and Spanish renditions of the same content.
+//Rendition represents the tag #EXT-X-MEDIA
+//
+//Relates Media Playlists with alternative renditions of the same content.
+//Eg. Audio only playlists containing English, French and Spanish renditions of the same content.
 //One or more X-MEDIA tags with same GroupID and Type sets a group of renditions and MUST meet the following constraints:
 //  -Tags in the same group MUST have different Name att.
 //  -MUST NOT have more than one member with a Default att of YES

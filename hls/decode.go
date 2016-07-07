@@ -135,8 +135,6 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 		index := stringsIndex(line, ":")
 
 		switch {
-		case line == "#EXTM3U":
-			p.M3U = true
 		case line[0:index] == "#EXT-X-VERSION":
 			p.Version, buf.err = strconv.Atoi(line[index+1 : size])
 		case line[0:index] == "#EXT-X-TARGETDURATION":
