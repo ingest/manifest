@@ -1,10 +1,14 @@
-//Package m3u8 holds the main interface for Manifest encode/parse.
-package m3u8
+//Package manifest holds the main interface for Manifest encode/parse.
+package manifest
 
 import "io"
 
-//Manifest is the interface for the Generate and Read manifest methods
-type Manifest interface {
-	Encode() (io.Reader, error)
+// Parser is the interface by which we convert the textual format into a Go based structure format
+type Parser interface {
 	Parse(reader io.Reader) error
+}
+
+// Encoder is the interface by which we convert our Go based structured format into the textual representation
+type Encoder interface {
+	Encode() (io.Reader, error)
 }
