@@ -74,6 +74,14 @@ func (b *BufWrapper) WriteRune(r rune) {
 	_, b.err = b.buf.WriteRune(r)
 }
 
+//Write wraps buffer.Write
+func (b *BufWrapper) Write(p []byte) {
+	if b.err != nil {
+		return
+	}
+	_, b.err = b.buf.Write(p)
+}
+
 //ReadFrom wraps buffer.ReadFrom
 func (b *BufWrapper) ReadFrom(r io.Reader) {
 	if b.err != nil {
