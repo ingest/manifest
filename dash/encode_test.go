@@ -23,6 +23,7 @@ func TestEncode(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer f.Close()
 		//Parse from file
 		m := &MPD{}
 		if err = m.Parse(bufio.NewReader(f)); err != nil {

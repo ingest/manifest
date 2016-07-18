@@ -5,15 +5,20 @@ import "encoding/xml"
 //TODO:Go through every duration field, make sure it's seconds or h:m:s
 //Go through every int field, make sure int is enough or int64 better
 //Make sure int field of value 0 will appear on playlist when marshalling to xml
-//Figure out xmlns/xsi/xlink namespace encodes properly and which fields need to add
-//Look up if order of elements matter
+//Look up if order of certain elements matter
+//Figure out how to separate common attr into generic structs. There's a lot of duplicated fields at the moment.
+
+//DashNS is the XML schema for the MPD
+const DashNS = "urn:mpeg:dash:schema:mpd:2011"
 
 //MPD represents a Media Presentation Description.
-//TODO: Figure out how to separate common attr into generic structs. There's a lot of duplicated fields at the moment.
+//TODO:xsi namespace prefix unmarshals successfully, but errors on marshalling:
+//It renders: xmlns:XMLSchema-instance="http://www.w3.org/2001/XMLSchema-instance"
+//XMLSchema-instance:schemaLocation="urn:mpeg:dash:schema:mpd:2011 DASH-MPD.xsd"
 type MPD struct {
-	XMLNS                 string                `xml:"xmlns,attr,omitempty"` //TODO: Figure out how to read xmlns attrs...
-	Xsi                   string                `xml:"xmlns:xsi,attr,omitempty"`
-	SchemaLocation        string                `xml:"xsi:schemaLocation,attr,omitempty"`
+	XMLNS                 string                `xml:"xmlns,attr,omitempty"`
+	Xsi                   string                `xml:"http://www.w3.org/2001/XMLSchema-instance xsi,attr,omitempty"`
+	SchemaLocation        string                `xml:"xsi schemaLocation,attr,omitempty"`
 	ID                    string                `xml:"id,attr,omitempty"`                         //Optional.
 	Profiles              string                `xml:"profiles,attr,omitempty"`                   //Required
 	Type                  string                `xml:"type,attr,omitempty"`                       //Optional. Default:"static". Possible Values: static, dynamic
@@ -79,7 +84,7 @@ type Period struct {
 	ID                 string           `xml:"id,attr,omitempty"`                                   //Optional. Must be unique. If type "dynamic", id must be present and not updated.
 	Start              *CustomDuration  `xml:"start,attr,omitempty"`                                //Optional. Used as anchor to determine the start of each Media Segment. TODO:Check when not present
 	Duration           *CustomDuration  `xml:"duration,attr,omitempty"`                             //Optional. Determine the Start time of next Period. TODO:check when not present
-	BitstreamSwitching bool             `xml:"bitstreamSwitching,attr,omitempty"`                   // Optional. Default: false. If 'true', means that every AdaptationSet.BitstreamSwitching is set to 'true'. TODO: check if there's 'false' on AdaptationSet
+	BitstreamSwitching bool             `xml:"bitstreamSwitching,attr,omitempty"`                   //Optional. Default: false. If 'true', means that every AdaptationSet.BitstreamSwitching is set to 'true'. TODO: check if there's 'false' on AdaptationSet
 	BaseURL            []*BaseURL       `xml:"BaseURL,omitempty"`                                   //Optional
 	SegmentBase        *SegmentBase     `xml:"SegmentBase,omitempty"`                               //Optional. Default Segment Base information. Overidden by AdaptationSet.SegmentBase and Representation.SegmentBase
 	SegmentList        *SegmentList     `xml:"SegmentList,omitempty"`
@@ -92,8 +97,8 @@ type Period struct {
 
 //EventStream ...
 type EventStream struct { //TODO:check specs for validation
-	XlinkHref    string   `xml:"xlink:href,attr,omitempty"`
-	XlinkActuate string   `xml:"xlink:actuate,attr,omitempty"`
+	XlinkHref    string   `xml:"http://www.w3.org/1999/xlink href,attr,omitempty"`
+	XlinkActuate string   `xml:"http://www.w3.org/1999/xlink actuate,attr,omitempty"`
 	SchemeIdURI  string   `xml:"schemeIdUri,attr,omitempty"`
 	Value        string   `xml:"value,attr,omitempty"`
 	Timescale    int      `xml:"timescale,attr,omitempty"`
@@ -194,9 +199,9 @@ type SegmentTimeline struct {
 
 //S is contained in a SegmentTimeline tag. TODO:Check specs for validation.
 type S struct {
-	T int `xml:"t,attr,omitempty"` //Optional. Specifies MPD start time, in timescale units. Relative to the befinning of the Period.
-	D int `xml:"d,attr"`           //Required. Segment duration int timescale units. Must not exceed the value of MPD.MaxSegmentDuration.
-	R int `xml:"r,attr,omitempty"` //Default: 0. Specifies repeat count of number of following continguous segments with same duration as D.
+	T int `xml:"t,attr"` //Optional. Specifies MPD start time, in timescale units. Relative to the befinning of the Period.
+	D int `xml:"d,attr"` //Required. Segment duration int timescale units. Must not exceed the value of MPD.MaxSegmentDuration.
+	R int `xml:"r,attr"` //Default: 0. Specifies repeat count of number of following continguous segments with same duration as D.
 }
 
 //Subset ..
@@ -207,8 +212,8 @@ type Subset struct {
 
 //AdaptationSet represents a set of versions of one or more media streams.
 type AdaptationSet struct {
-	XlinkHref               string              `xml:"xlink:href,attr,omitempty"`
-	XlinkActuate            string              `xml:"xlink:actuate,attr,omitempty"` //Possible Values: 'onLoad', 'onRequest'. Default: onRequest.
+	XlinkHref               string              `xml:"http://www.w3.org/1999/xlink href,attr,omitempty"`
+	XlinkActuate            string              `xml:"http://www.w3.org/1999/xlink actuate,attr,omitempty"` //Possible Values: 'onLoad', 'onRequest'. Default: onRequest.
 	ID                      int                 `xml:"id,attr,omitempty"`
 	Group                   int                 `xml:"group,attr,omitempty"`
 	Lang                    string              `xml:"lang,attr,omitempty"`
@@ -276,8 +281,8 @@ type Representation struct {
 	ID                      string               `xml:"id,attr"` //Required. TODO:Check validation (regex)
 	Bandwidth               int                  `xml:"bandwidth,attr,omitempty"`
 	QualityRanking          int                  `xml:"qualityRanking,attr,omitempty"`
-	DependencyID            string               `xml:"dependencyId,attr,omitempty"`
-	MediaStreamsStructureID string               `xml:"mediaStreamsStructureId,attr,omitempty"`
+	DependencyID            string               `xml:"dependencyId,attr,omitempty"`            //Whitespace separated list of int
+	MediaStreamsStructureID string               `xml:"mediaStreamsStructureId,attr,omitempty"` //Whitespace separated list of int
 	BaseURL                 []*BaseURL           `xml:"BaseURL,omitempty"`
 	SubRepresentation       []*SubRepresentation `xml:"SubRepresentation,omitempty"`
 	SegmentBase             *SegmentBase         `xml:"SegmentBase,omitempty"`
@@ -303,7 +308,7 @@ type Representation struct {
 	EssentialProperty       []*Descriptor        `xml:"EssentialProperty,omitempty"`
 	SupplementalProperty    []*Descriptor        `xml:"SupplementalProperty,omitempty"`
 	InbandEventStream       []*Descriptor        `xml:"InbandEventStream,omitempty"`
-	//	CommonComponents        *CommonComponents
+	//CommonComponents *CommonComponents `xml:"Representation"`
 }
 
 //SubRepresentation represents SubRepresentation elements. Describes properties of one or several media
@@ -311,9 +316,9 @@ type Representation struct {
 //for common attributes with Representation
 type SubRepresentation struct {
 	Level                int           `xml:"level,attr,omitempty"`
-	DependencyLevel      CustomInt     `xml:"dependencyLevel,attr,omitempty"` //Whitespace separated list
+	DependencyLevel      CustomInt     `xml:"dependencyLevel,attr,omitempty"` //Whitespace separated list of int
 	Bandwidth            int           `xml:"bandwidth,attr,omitempty"`
-	ContentComponent     []string      `xml:"contentComponent,attr,omitempty"` //StringVectorType
+	ContentComponent     []string      `xml:"contentComponent,attr,omitempty"` //Whitespace separated list of string
 	Profiles             string        `xml:"profiles,attr,omitempty"`
 	Width                int           `xml:"width,attr,omitempty"`
 	Height               int           `xml:"height,attr,omitempty"`
