@@ -74,7 +74,7 @@ func (c *CustomDuration) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
 	return attr, nil
 }
 
-//CustomInt is a custom type for int slice that implements XML marshaller and unmarshaller
+//CustomInt is a custom type for UIntVectorType that implements XML marshaller and unmarshaller
 type CustomInt struct {
 	CI []int
 }

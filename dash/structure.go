@@ -17,8 +17,7 @@ const DashNS = "urn:mpeg:dash:schema:mpd:2011"
 //XMLSchema-instance:schemaLocation="urn:mpeg:dash:schema:mpd:2011 DASH-MPD.xsd"
 type MPD struct {
 	XMLNS                 string                `xml:"xmlns,attr,omitempty"`
-	Xsi                   string                `xml:"http://www.w3.org/2001/XMLSchema-instance xsi,attr,omitempty"`
-	SchemaLocation        string                `xml:"xsi schemaLocation,attr,omitempty"`
+	SchemaLocation        string                `xml:"http://www.w3.org/2001/XMLSchema-instance schemaLocation,attr,omitempty"`
 	ID                    string                `xml:"id,attr,omitempty"`                         //Optional.
 	Profiles              string                `xml:"profiles,attr,omitempty"`                   //Required
 	Type                  string                `xml:"type,attr,omitempty"`                       //Optional. Default:"static". Possible Values: static, dynamic
@@ -132,14 +131,14 @@ type SegmentBase struct {
 	RepresentationIndex *URLType        `xml:"RepresentationIndex,omitempty"`
 }
 
-//MultipleSegmentBase ...
-type MultipleSegmentBase struct {
-	SegmentBase        *SegmentBase
-	Duration           int              `xml:"duration,attr,omitempty"`
-	StartNumber        int              `xml:"startNumber,attr,omitempty"`
-	SegmentTimeline    *SegmentTimeline `xml:"SegmentTimeline,omitempty"`
-	BitstreamSwitching *URLType         `xml:"BitstreamSwitching,omitempty"`
-}
+// //MultipleSegmentBase ...
+// type MultipleSegmentBase struct {
+// 	SegmentBase        *SegmentBase
+// 	Duration           int              `xml:"duration,attr,omitempty"`
+// 	StartNumber        int              `xml:"startNumber,attr,omitempty"`
+// 	SegmentTimeline    *SegmentTimeline `xml:"SegmentTimeline,omitempty"`
+// 	BitstreamSwitching *URLType         `xml:"BitstreamSwitching,omitempty"`
+// }
 
 //SegmentList ... SegmentBase + MultipleSegmentBase
 type SegmentList struct {
@@ -342,26 +341,26 @@ type SubRepresentation struct {
 	//	CommonComponents *CommonComponents
 }
 
-//CommonComponents are attributes and elements present in AdaptationSet, Representation and SubRepresentation elements
-type CommonComponents struct {
-	Profiles             string        `xml:"profiles,attr,omitempty"`
-	Width                int           `xml:"width,attr,omitempty"`
-	Height               int           `xml:"height,attr,omitempty"`
-	Sar                  string        `xml:"sar,attr,omitempty"`       //RatioType
-	FrameRate            string        `xml:"frameRate,attr,omitempty"` //FrameRateType
-	AudioSamplingRate    string        `xml:"audioSamplingRate,attr,omitempty"`
-	MimeType             string        `xml:"mimeType,attr,omitempty"`
-	SegmentProfiles      string        `xml:"segmentProfiles,attr,omitempty"`
-	Codecs               string        `xml:"codecs,attr,omitempty"`
-	MaxSAPPeriod         float64       `xml:"maximumSAPPeriod,attr,omitempty"`
-	StartWithSAP         int           `xml:"startWithSAP,attr,omitempty"` //SAPType
-	MaxPlayoutRate       float64       `xml:"maxPlayoutRate,attr,omitempty"`
-	CodingDependency     bool          `xml:"codingDependency,attr,omitempty"`
-	ScanType             string        `xml:"scanType,attr,omitempty"` //VideoScanType
-	FramePacking         []*Descriptor `xml:"FramePacking,omitempty"`
-	AudioChannelConfig   []*Descriptor `xml:"AudioChannelConfiguration,omitempty"`
-	ContentProtection    []*Descriptor `xml:"ContentProtection,omitempty"`
-	EssentialProperty    []*Descriptor `xml:"EssentialProperty,omitempty"`
-	SupplementalProperty []*Descriptor `xml:"SupplementalProperty,omitempty"`
-	InbandEventStream    []*Descriptor `xml:"InbandEventStream,omitempty"`
-}
+// //CommonComponents are attributes and elements present in AdaptationSet, Representation and SubRepresentation elements
+// type CommonComponents struct {
+// 	Profiles             string        `xml:"profiles,attr,omitempty"`
+// 	Width                int           `xml:"width,attr,omitempty"`
+// 	Height               int           `xml:"height,attr,omitempty"`
+// 	Sar                  string        `xml:"sar,attr,omitempty"`       //RatioType
+// 	FrameRate            string        `xml:"frameRate,attr,omitempty"` //FrameRateType
+// 	AudioSamplingRate    string        `xml:"audioSamplingRate,attr,omitempty"`
+// 	MimeType             string        `xml:"mimeType,attr,omitempty"`
+// 	SegmentProfiles      string        `xml:"segmentProfiles,attr,omitempty"`
+// 	Codecs               string        `xml:"codecs,attr,omitempty"`
+// 	MaxSAPPeriod         float64       `xml:"maximumSAPPeriod,attr,omitempty"`
+// 	StartWithSAP         int           `xml:"startWithSAP,attr,omitempty"` //SAPType
+// 	MaxPlayoutRate       float64       `xml:"maxPlayoutRate,attr,omitempty"`
+// 	CodingDependency     bool          `xml:"codingDependency,attr,omitempty"`
+// 	ScanType             string        `xml:"scanType,attr,omitempty"` //VideoScanType
+// 	FramePacking         []*Descriptor `xml:"FramePacking,omitempty"`
+// 	AudioChannelConfig   []*Descriptor `xml:"AudioChannelConfiguration,omitempty"`
+// 	ContentProtection    []*Descriptor `xml:"ContentProtection,omitempty"`
+// 	EssentialProperty    []*Descriptor `xml:"EssentialProperty,omitempty"`
+// 	SupplementalProperty []*Descriptor `xml:"SupplementalProperty,omitempty"`
+// 	InbandEventStream    []*Descriptor `xml:"InbandEventStream,omitempty"`
+// }
