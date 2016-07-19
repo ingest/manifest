@@ -83,15 +83,13 @@ type CustomInt struct {
 func (c *CustomInt) UnmarshalXMLAttr(attr xml.Attr) (err error) {
 	var ss []string
 	var i int64
-	if len(ss) > 0 {
-		ss = strings.Split(attr.Value, " ")
-		for _, s := range ss {
-			i, err = strconv.ParseInt(s, 10, 8)
-			if err != nil {
-				return
-			}
-			c.CI = append(c.CI, int(i))
+	ss = strings.Split(attr.Value, " ")
+	for _, s := range ss {
+		i, err = strconv.ParseInt(s, 10, 8)
+		if err != nil {
+			return
 		}
+		c.CI = append(c.CI, int(i))
 	}
 	return
 }
