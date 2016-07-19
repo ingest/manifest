@@ -83,13 +83,15 @@ type CustomInt struct {
 func (c *CustomInt) UnmarshalXMLAttr(attr xml.Attr) (err error) {
 	var ss []string
 	var i int64
-	ss = strings.Split(attr.Value, " ")
-	for _, s := range ss {
-		i, err = strconv.ParseInt(s, 10, 8)
-		if err != nil {
-			return
+	if len(ss) > 0 {
+		ss = strings.Split(attr.Value, " ")
+		for _, s := range ss {
+			i, err = strconv.ParseInt(s, 10, 8)
+			if err != nil {
+				return
+			}
+			c.CI = append(c.CI, int(i))
 		}
-		c.CI = append(c.CI, int(i))
 	}
 	return
 }
@@ -97,9 +99,12 @@ func (c *CustomInt) UnmarshalXMLAttr(attr xml.Attr) (err error) {
 //MarshalXMLAttr implementes MarshalerAttr interface for CustomInt
 func (c *CustomInt) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
 	var ci []string
-	for _, i := range c.CI {
-		ci = append(ci, strconv.Itoa(i))
+	var attr xml.Attr
+	if len(c.CI) > 0 {
+		for _, i := range c.CI {
+			ci = append(ci, strconv.Itoa(i))
+		}
+		attr = xml.Attr{Name: name, Value: strings.Join(ci, " ")}
 	}
-	attr := xml.Attr{Name: name, Value: strings.Join(ci, " ")}
 	return attr, nil
 }

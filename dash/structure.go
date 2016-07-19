@@ -1,12 +1,11 @@
 package dash
 
-import "encoding/xml"
-
 //TODO:Go through every duration field, make sure it's seconds or h:m:s
 //Go through every int field, make sure int is enough or int64 better
 //Make sure int field of value 0 will appear on playlist when marshalling to xml
 //Look up if order of certain elements matter
 //Figure out how to separate common attr into generic structs. There's a lot of duplicated fields at the moment.
+//Research content protection and complement struct
 
 //DashNS is the XML schema for the MPD
 const DashNS = "urn:mpeg:dash:schema:mpd:2011"
@@ -106,9 +105,10 @@ type EventStream struct { //TODO:check specs for validation
 
 //Event ...
 type Event struct {
-	PresTime int64 `xml:"presentationTime,attr,omitempty"`
-	Duration int64 `xml:"duration,attr,omitempty"`
-	ID       int   `xml:"id,attr,omitempty"`
+	Message  string `xml:",innerxml"`
+	PresTime int64  `xml:"presentationTime,attr,omitempty"`
+	Duration int64  `xml:"duration,attr,omitempty"`
+	ID       int    `xml:"id,attr,omitempty"`
 }
 
 //URLType ...
@@ -119,7 +119,6 @@ type URLType struct {
 
 //SegmentBase represents a media file played by a DASH client
 type SegmentBase struct {
-	XMLName             xml.Name
 	Timescale           int             `xml:"timescale,attr,omitempty"`                //Optional. If not present, it must be set to 1.
 	PresTimeOffset      int64           `xml:"presentationTimeOffset,attr,omitempty"`   //Optional.
 	TimeShiftBuffer     *CustomDuration `xml:"timeShiftBufferDepth,attr,omitempty"`     //Optional.
@@ -142,6 +141,8 @@ type SegmentBase struct {
 
 //SegmentList ... SegmentBase + MultipleSegmentBase
 type SegmentList struct {
+	XlinkHref           string           `xml:"http://www.w3.org/1999/xlink href,attr,omitempty"`
+	XlinkActuate        string           `xml:"http://www.w3.org/1999/xlink actuate,attr,omitempty"`
 	Timescale           int              `xml:"timescale,attr,omitempty"`                //Optional. . If not present, it must be set to 1.
 	PresTimeOffset      int64            `xml:"presentationTimeOffset,attr,omitempty"`   //Optional.
 	TimeShiftBuffer     *CustomDuration  `xml:"timeShiftBufferDepth,attr,omitempty"`     //Optional.
@@ -155,8 +156,6 @@ type SegmentList struct {
 	StartNumber         int              `xml:"startNumber,attr,omitempty"`
 	SegmentTimeline     *SegmentTimeline `xml:"SegmentTimeline,omitempty"`
 	BitstreamSwitching  *URLType         `xml:"BitstreamSwitching,omitempty"`
-	XlinkHref           string           `xml:"xlink:href,attr,omitempty"`
-	XlinkActuate        string           `xml:"xlink:actuate,attr,omitempty"`
 	SegmentURLs         []*SegmentURL    `xml:"SegmentURL,omitempty"`
 }
 
@@ -314,10 +313,10 @@ type Representation struct {
 //content components that are embedded in the Representation. TODO: check specs for validation. check validation
 //for common attributes with Representation
 type SubRepresentation struct {
-	Level                int           `xml:"level,attr,omitempty"`
+	Level                *int          `xml:"level,attr,omitempty"`
 	DependencyLevel      CustomInt     `xml:"dependencyLevel,attr,omitempty"` //Whitespace separated list of int
 	Bandwidth            int           `xml:"bandwidth,attr,omitempty"`
-	ContentComponent     []string      `xml:"contentComponent,attr,omitempty"` //Whitespace separated list of string
+	ContentComponent     string        `xml:"contentComponent,attr,omitempty"` //Whitespace separated list of string
 	Profiles             string        `xml:"profiles,attr,omitempty"`
 	Width                int           `xml:"width,attr,omitempty"`
 	Height               int           `xml:"height,attr,omitempty"`

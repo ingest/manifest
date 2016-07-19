@@ -72,3 +72,41 @@ func TestDynamicParse(t *testing.T) {
 		t.Errorf("Expecting 1 AudioChannelConfig, but got %d", len(mpd.Periods[0].AdaptationSets[1].Representations[0].AudioChannelConfig))
 	}
 }
+
+func TestEventMessage(t *testing.T) {
+	f, err := os.Open("./playlists/eventmessage.mpd")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	mpd := &MPD{}
+	if err := mpd.Parse(bufio.NewReader(f)); err != nil {
+		t.Fatal(err)
+	}
+	event := mpd.Periods[0].EventStream[0]
+	if event.SchemeIdURI != "urn:uuid:XYZY" {
+		t.Errorf("Expecting SchemeIdURI urn:uuid:XYZY, but got %s", event.SchemeIdURI)
+	}
+	for i, e := range event.Event {
+		if e.Message == "" {
+			t.Errorf("Expecting Message to not be empty.")
+		}
+		if e.Duration != 10000 {
+			t.Errorf("Expecting Duration to be 10000, but got %d", e.Duration)
+		}
+		if e.ID != i {
+			t.Errorf("Expecting ID to be %d, but got %d", i, e.ID)
+		}
+	}
+
+	rep := mpd.Periods[0].AdaptationSets[1].Representations[0]
+	for i, ie := range rep.InbandEventStream {
+		if ie.SchemeIDURI == "" {
+			t.Errorf("Expecting %d SchemeIdURI to be set.", i)
+		}
+		if ie.Value == "" {
+			t.Errorf("Expecting %d Value to be set.", i)
+		}
+	}
+}

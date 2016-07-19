@@ -28,7 +28,7 @@ func (m *MPD) validate() error {
 
 func (m *MPD) validateMPD(buf *bytes.Buffer) {
 	if m != nil {
-
+		//validate attributes
 		if m.Profiles == "" {
 			buf.WriteString("MPD field Profiles is required.\n")
 		}
@@ -50,7 +50,7 @@ func (m *MPD) validateMPD(buf *bytes.Buffer) {
 			}
 		}
 
-		if m.MinBufferTime == nil {
+		if m.MinBufferTime == nil || m.MinBufferTime.Duration == 0 {
 			buf.WriteString("MPD field MinBufferTime is required.\n")
 		}
 
@@ -59,7 +59,7 @@ func (m *MPD) validateMPD(buf *bytes.Buffer) {
 				metric.validate(buf)
 			}
 		}
-
+		//validate Period
 		if m.Periods != nil {
 			for _, period := range m.Periods {
 				period.validate(buf, m.Type)
@@ -71,9 +71,22 @@ func (m *MPD) validateMPD(buf *bytes.Buffer) {
 }
 
 func (p *Period) validate(buf *bytes.Buffer, mpdType string) {
+	//validate XlinkActuate
+	xlinkActuateError(buf, "Period", p.XlinkActuate)
+
 	if strings.EqualFold(mpdType, "dynamic") && p.ID == "" {
 		buf.WriteString("Period must have ID when Type = 'dynamic'.\n")
 	}
+	if p.AssetIdentifier != nil {
+		p.AssetIdentifier.validate(buf, "AssetIdentifier")
+	}
+	if p.SegmentBase != nil {
+		p.SegmentBase.validate(buf)
+	}
+	if p.SegmentList != nil {
+		p.SegmentList.validate(buf)
+	}
+	//validate AdaptationSets
 	if p.AdaptationSets != nil {
 		for _, adaptationSet := range p.AdaptationSets {
 			if p.BitstreamSwitching && !adaptationSet.BitstreamSwitching {
@@ -82,32 +95,14 @@ func (p *Period) validate(buf *bytes.Buffer, mpdType string) {
 			adaptationSet.validate(buf)
 		}
 	}
-	if p.SegmentBase != nil {
-		p.SegmentBase.validate(buf)
+	//check if only one out of SegmentBase, SegmentList and SegmentTemplate is present
+	if !validateSegmentPresence(p.SegmentBase, p.SegmentTemplate, p.SegmentList) {
+		buf.WriteString("At most one of the three, SegmentBase, SegmentTemplate and SegmentList shall be present in a Period element.\n")
 	}
-	if p.AssetIdentifier != nil {
-		p.AssetIdentifier.validate(buf, "AssetIdentifier")
-	}
-	if p.SegmentList != nil {
-		p.SegmentList.validate(buf)
-	}
-	if p.SegmentTemplate != nil {
-		p.SegmentTemplate.validate(buf)
-	}
-}
-
-func (s *SegmentTemplate) validate(buf *bytes.Buffer) {
-
 }
 
 func (s *SegmentList) validate(buf *bytes.Buffer) {
-
-}
-
-func xlinkActuateError(buf *bytes.Buffer, element string, xlinkActuate string) {
-	if xlinkActuate != "onLoad" && xlinkActuate != "onRequest" {
-		buf.WriteString(fmt.Sprintf("%s field XlinkActuate accepts values 'onRequest' and 'onLoad'.\n", element))
-	}
+	xlinkActuateError(buf, "SegmentList", s.XlinkActuate)
 }
 
 func (a *AdaptationSet) validate(buf *bytes.Buffer) {
@@ -161,18 +156,27 @@ func (a *AdaptationSet) validate(buf *bytes.Buffer) {
 			v.validate(buf, "Viewpoint")
 		}
 	}
-	if a.SegmentBase != nil {
-		a.SegmentBase.validate(buf)
-	}
 	if a.Representations != nil {
 		for _, re := range a.Representations {
 			re.validate(buf)
 		}
 	}
+
+	if a.SegmentBase != nil {
+		a.SegmentBase.validate(buf)
+	}
+	//check if only one out of SegmentBase, SegmentList and SegmentTemplate is present
+	if !validateSegmentPresence(a.SegmentBase, a.SegmentTemplate, a.SegmentList) {
+		buf.WriteString("At most one of the three, SegmentBase, SegmentTemplate and SegmentList shall be present in AdaptationSet element.\n")
+	}
 }
 
 func (r *Representation) validate(buf *bytes.Buffer) {
-
+	r.SegmentBase.validate(buf)
+	//check if only one out of SegmentBase, SegmentList and SegmentTemplate is present
+	if !validateSegmentPresence(r.SegmentBase, r.SegmentTemplate, r.SegmentList) {
+		buf.WriteString("At most one of the three, SegmentBase, SegmentTemplate and SegmentList shall be present in Representation element.\n")
+	}
 }
 
 func (s *SegmentBase) validate(buf *bytes.Buffer) {
@@ -203,4 +207,24 @@ func (d *Descriptor) validate(buf *bytes.Buffer, element string) {
 	if d.SchemeIDURI == "" {
 		buf.WriteString(fmt.Sprintf("%s field SchemeIdURI is required.\n", element))
 	}
+}
+
+func xlinkActuateError(buf *bytes.Buffer, element string, xlinkActuate string) {
+	if xlinkActuate != "" && xlinkActuate != "onLoad" && xlinkActuate != "onRequest" {
+		buf.WriteString(fmt.Sprintf("%s field XlinkActuate accepts values 'onRequest' and 'onLoad'.\n", element))
+	}
+}
+
+func validateSegmentPresence(sb *SegmentBase, st *SegmentTemplate, sl *SegmentList) bool {
+	var segment int
+	if sb != nil {
+		segment++
+	}
+	if st != nil {
+		segment++
+	}
+	if sl != nil {
+		segment++
+	}
+	return segment <= 1
 }
