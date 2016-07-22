@@ -24,10 +24,6 @@ func (m *MPD) Encode() (io.Reader, error) {
 	buf := new(bytes.Buffer)
 	buf.WriteString(xml.Header)
 	buf.Write(output)
+
 	return bytes.NewReader(buf.Bytes()), nil
-}
-
-//sort orders MPD elements
-func (m *MPD) sort() {
-
 }

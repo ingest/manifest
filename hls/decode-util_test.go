@@ -10,7 +10,7 @@ import (
 )
 
 func TestReadMasterPlaylistFile(t *testing.T) {
-	f, err := os.Open("./playlists/masterp.m3u8")
+	f, err := os.Open("./testdata/masterp.m3u8")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestReadMasterPlaylistFile(t *testing.T) {
 }
 
 func TestReadMediaPlaylistFile(t *testing.T) {
-	f, err := os.Open("./playlists/mediap.m3u8")
+	f, err := os.Open("./testdata/mediap.m3u8")
 	if err != nil {
 		t.Fatal(err)
 	}

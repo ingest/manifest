@@ -12,14 +12,13 @@ func TestEncode(t *testing.T) {
 		Case string
 		File string
 	}{
-		{"Static MPD", "./playlists/static.mpd"},
-		{"Static2 MPD", "./playlists/static2.mpd"},
-		{"Dynamic MPD", "./playlists/dynamic.mpd"},
-		{"Encrypted MPD", "./playlists/encrypted.mpd"},
-		{"Event Message MPD", "./playlists/eventmessage.mpd"},
-		{"Multiple Periods MPD", "./playlists/multipleperiods.mpd"},
-		{"Content Protection MPD", "./playlists/contentprotection.mpd"},
-		{"Trick Play MPD", "./playlists/trickplay.mpd"},
+		{"Static MPD", "./testdata/static.mpd"},
+		{"Static2 MPD", "./testdata/static2.mpd"},
+		{"Dynamic MPD", "./testdata/dynamic.mpd"},
+		{"Encrypted MPD", "./testdata/encrypted.mpd"},
+		{"Event Message MPD", "./testdata/eventmessage.mpd"},
+		{"Multiple Periods MPD", "./testdata/multipleperiods.mpd"},
+		{"Trick Play MPD", "./testdata/trickplay.mpd"},
 	}
 
 	for _, tt := range tests {
@@ -39,11 +38,6 @@ func TestEncode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s - %s", tt.Case, err)
 		}
-
-		// buf := new(bytes.Buffer)
-		// buf.ReadFrom(o)
-		// fmt.Println(buf.String())
-		// t.Error("Err")
 
 		//Parse from previous encoded result into new struct
 		newM := &MPD{}

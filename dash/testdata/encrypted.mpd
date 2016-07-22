@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<MPD xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="urn:mpeg:dash:schema:mpd:2011" xsi:schemaLocation="urn:mpeg:dash:schema:mpd:2011 DASH-MPD.xsd" type="static" mediaPresentationDuration="PT25.959S" availabilityStartTime="2012-12-17T15:56:16Z" maxSegmentDuration="PT2.080S" minBufferTime="PT2.001S" profiles="urn:mpeg:dash:profile:isoff-live:2011, http://dashif.org/guidelines/dash264">
+<MPD xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="urn:mpeg:dash:schema:mpd:2011"
+xsi:schemaLocation="urn:mpeg:dash:schema:mpd:2011 DASH-MPD.xsd" type="static" mediaPresentationDuration="PT25.959S"
+availabilityStartTime="2012-12-17T15:56:16Z" maxSegmentDuration="PT2.080S" minBufferTime="PT2.001S"
+profiles="urn:mpeg:dash:profile:isoff-live:2011, http://dashif.org/guidelines/dash264">
   <Period id="0">
     <AdaptationSet mimeType="video/mp4" segmentAlignment="true" startWithSAP="1" maxWidth="1280" maxHeight="720" maxFrameRate="30000/1001" par="16:9">
       <ContentProtection schemeIdUri="urn:mpeg:dash:mp4protection:2011" value="cenc" />

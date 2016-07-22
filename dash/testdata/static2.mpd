@@ -30,4 +30,5 @@
   <Metrics metrics="metrics">
     <Reporting schemeIdUri="urn:mpeg:dash" value="bla"/>
   </Metrics>
+  <Subset contains="0 1 3"/>
 </MPD>

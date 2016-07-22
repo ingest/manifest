@@ -10,7 +10,7 @@ import (
 
 //TODO:Check for every struct field possible.
 func TestStaticParse(t *testing.T) {
-	f, err := os.Open("./playlists/static.mpd")
+	f, err := os.Open("./testdata/static.mpd")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestStaticParse(t *testing.T) {
 }
 
 func TestDynamicParse(t *testing.T) {
-	f, err := os.Open("./playlists/dynamic.mpd")
+	f, err := os.Open("./testdata/dynamic.mpd")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestDynamicParse(t *testing.T) {
 }
 
 func TestEventMessage(t *testing.T) {
-	f, err := os.Open("./playlists/eventmessage.mpd")
+	f, err := os.Open("./testdata/eventmessage.mpd")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,8 +85,8 @@ func TestEventMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 	event := mpd.Periods[0].EventStream[0]
-	if event.SchemeIdURI != "urn:uuid:XYZY" {
-		t.Errorf("Expecting SchemeIdURI urn:uuid:XYZY, but got %s", event.SchemeIdURI)
+	if event.SchemeIDURI != "urn:uuid:XYZY" {
+		t.Errorf("Expecting SchemeIdURI urn:uuid:XYZY, but got %s", event.SchemeIDURI)
 	}
 	for i, e := range event.Event {
 		if e.Message == "" {

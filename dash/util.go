@@ -2,6 +2,7 @@ package dash
 
 import (
 	"bytes"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"strings"
@@ -15,6 +16,46 @@ func NewMPD(profile string, minBufferTime time.Duration) *MPD {
 		Profiles:      profile,
 		MinBufferTime: &CustomDuration{Duration: minBufferTime},
 	}
+}
+
+//NewPlayreadyContentProtection sets ContentProtection element with the appropriate
+//namespaces.
+func NewPlayreadyContentProtection(schemeIdUri string,
+	value string,
+	defaultKID string,
+	pssh string,
+	pro string) *CENCContentProtection {
+	cp := &CENCContentProtection{
+		ContentProtection: ContentProtection{
+			SchemeIDURI: schemeIdUri,
+			Value:       value,
+		},
+	}
+	if defaultKID != "" {
+		cp.ContentProtection.XMLNsCenc = CencNS
+		cp.ContentProtection.DefaultKID = defaultKID
+	}
+	if pssh != "" {
+		cp.ContentProtection.XMLNsCenc = CencNS
+		cp.Pssh = &Pssh{
+			XMLName: xml.Name{Local: "pssh", Space: "cenc"},
+			Value:   pssh,
+		}
+	}
+	if pro != "" {
+		cp.ContentProtection.XMLNsMsrp = MsprNS
+		cp.Pro = &Playready{
+			XMLName: xml.Name{Local: "pro", Space: "mspr"},
+			Value:   pro,
+		}
+	}
+
+	return cp
+}
+
+//sort orders MPD elements
+func (m *MPD) sort() {
+
 }
 
 func (m *MPD) validate() error {
@@ -114,11 +155,6 @@ func (a *AdaptationSet) validate(buf *bytes.Buffer) {
 	if a.AudioChannelConfig != nil {
 		for _, acc := range a.AudioChannelConfig {
 			acc.validate(buf, "AudioChannelConfig")
-		}
-	}
-	if a.ContentProtection != nil {
-		for _, cp := range a.ContentProtection {
-			cp.validate(buf, "ContentProtection")
 		}
 	}
 	if a.EssentialProperty != nil {

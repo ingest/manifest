@@ -1,5 +1,7 @@
 package dash
 
+import "encoding/xml"
+
 //TODO:Go through every duration field, make sure it's seconds or h:m:s
 //Go through every int field, make sure int is enough or int64 better
 //Make sure int field of value 0 will appear on playlist when marshalling to xml
@@ -7,8 +9,11 @@ package dash
 //Figure out how to separate common attr into generic structs. There's a lot of duplicated fields at the moment.
 //Research content protection and complement struct
 
-//DashNS is the XML schema for the MPD
-const DashNS = "urn:mpeg:dash:schema:mpd:2011"
+const (
+	DashNS = "urn:mpeg:dash:schema:mpd:2011"
+	CencNS = "urn:mpeg:cenc:2013"
+	MsprNS = "urn:microsoft:playready"
+)
 
 //MPD represents a Media Presentation Description.
 //TODO:xsi namespace prefix unmarshals successfully, but errors on marshalling:
@@ -97,7 +102,7 @@ type Period struct {
 type EventStream struct { //TODO:check specs for validation
 	XlinkHref    string   `xml:"http://www.w3.org/1999/xlink href,attr,omitempty"`
 	XlinkActuate string   `xml:"http://www.w3.org/1999/xlink actuate,attr,omitempty"`
-	SchemeIdURI  string   `xml:"schemeIdUri,attr,omitempty"`
+	SchemeIDURI  string   `xml:"schemeIdUri,attr,omitempty"`
 	Value        string   `xml:"value,attr,omitempty"`
 	Timescale    int      `xml:"timescale,attr,omitempty"`
 	Event        []*Event `xml:"Event,omitempty"`
@@ -130,15 +135,6 @@ type SegmentBase struct {
 	RepresentationIndex *URLType        `xml:"RepresentationIndex,omitempty"`
 }
 
-// //MultipleSegmentBase ...
-// type MultipleSegmentBase struct {
-// 	SegmentBase        *SegmentBase
-// 	Duration           int              `xml:"duration,attr,omitempty"`
-// 	StartNumber        int              `xml:"startNumber,attr,omitempty"`
-// 	SegmentTimeline    *SegmentTimeline `xml:"SegmentTimeline,omitempty"`
-// 	BitstreamSwitching *URLType         `xml:"BitstreamSwitching,omitempty"`
-// }
-
 //SegmentList ... SegmentBase + MultipleSegmentBase
 type SegmentList struct {
 	XlinkHref           string           `xml:"http://www.w3.org/1999/xlink href,attr,omitempty"`
@@ -169,7 +165,7 @@ type SegmentURL struct {
 
 //SegmentTemplate ... SegmentBase + MultipleSegmentBase
 type SegmentTemplate struct {
-	Timescale              int              `xml:"timescale,attr,omitempty"`                //Optional. . If not present, it must be set to 1.
+	Timescale              int              `xml:"timescale,attr,omitempty"`                //Optional. If not present, it must be set to 1.
 	PresTimeOffset         int64            `xml:"presentationTimeOffset,attr,omitempty"`   //Optional.
 	TimeShiftBuffer        *CustomDuration  `xml:"timeShiftBufferDepth,attr,omitempty"`     //Optional.
 	IndexRange             string           `xml:"indexRange,attr,omitempty"`               //Optional. ByteRange that contains the Segment Index in all Segments of the Representation.
@@ -210,56 +206,91 @@ type Subset struct {
 
 //AdaptationSet represents a set of versions of one or more media streams.
 type AdaptationSet struct {
-	XlinkHref               string              `xml:"http://www.w3.org/1999/xlink href,attr,omitempty"`
-	XlinkActuate            string              `xml:"http://www.w3.org/1999/xlink actuate,attr,omitempty"` //Possible Values: 'onLoad', 'onRequest'. Default: onRequest.
-	ID                      int                 `xml:"id,attr,omitempty"`
-	Group                   int                 `xml:"group,attr,omitempty"`
-	Lang                    string              `xml:"lang,attr,omitempty"`
-	ContentType             string              `xml:"contentType,attr,omitempty"`
-	Par                     string              `xml:"par,attr,omitempty"` //Optional. Picture Aspect Ratio. TODO:check specs for validation (regex)
-	MinBandwidth            int                 `xml:"minBandwith,attr,omitempty"`
-	MaxBandwidth            int                 `xml:"maxBandwidth,attr,omitempty"`
-	MinWidth                int                 `xml:"minWidth,attr,omitempty"`
-	MaxWidth                int                 `xml:"maxWidth,attr,omitempty"`
-	MinHeight               int                 `xml:"minHeight,attr,omitempty"`
-	MaxHeight               int                 `xml:"maxHeight,attr,omitempty"`
-	MinFrameRate            string              `xml:"minFrameRate,attr,omitempty"` //TODO:Check specs for validation (regex)
-	MaxFrameRate            string              `xml:"maxFrameRate,attr,omitempty"`
-	SegmentAlignment        bool                `xml:"segmentAlignment,attr,omitempty"`        //Default: false. TODO: check specs for validation. Accepts 0,1 or true,false
-	BitstreamSwitching      bool                `xml:"bitstreamSwitching,attr,omitempty"`      //TODO: check specs for validation. Accepts 0,1 or true,false
-	SubsegmentAlignment     bool                `xml:"subsegmentAlignment,attr,omitempty"`     //Default: false. TODO: check specs for validation
-	SubsegmentStartsWithSAP int                 `xml:"subsegmentStartsWithSap,attr,omitempty"` //Default: 0. TODO: check specs for validation
-	Accessibility           []*Descriptor       `xml:"Accessibility,omitempty"`
-	Role                    []*Descriptor       `xml:"Role,omitempty"`
-	Rating                  []*Descriptor       `xml:"Rating,omitempty"`
-	ViewPoint               []*Descriptor       `xml:"Viewpoint,omitempty"`
-	ContentComponent        []*ContentComponent `xml:"ContentComponent,omitempty"`
-	BaseURL                 []*BaseURL          `xml:"BaseURL,omitempty"`
-	SegmentBase             *SegmentBase        `xml:"SegmentBase,omitempty"`
-	SegmentList             *SegmentList        `xml:"SegmentList,omitempty"`
-	SegmentTemplate         *SegmentTemplate    `xml:"SegmentTemplate,omitempty"`
-	Representations         Representations     `xml:"Representation,omitempty"`
-	Profiles                string              `xml:"profiles,attr,omitempty"`
-	Width                   int                 `xml:"width,attr,omitempty"`
-	Height                  int                 `xml:"height,attr,omitempty"`
-	Sar                     string              `xml:"sar,attr,omitempty"`       //RatioType
-	FrameRate               string              `xml:"frameRate,attr,omitempty"` //FrameRateType
-	AudioSamplingRate       string              `xml:"audioSamplingRate,attr,omitempty"`
-	MimeType                string              `xml:"mimeType,attr,omitempty"`
-	SegmentProfiles         string              `xml:"segmentProfiles,attr,omitempty"`
-	Codecs                  string              `xml:"codecs,attr,omitempty"`
-	MaxSAPPeriod            float64             `xml:"maximumSAPPeriod,attr,omitempty"` //seconds
-	StartWithSAP            int                 `xml:"startWithSAP,attr,omitempty"`     //SAPType
-	MaxPlayoutRate          float64             `xml:"maxPlayoutRate,attr,omitempty"`
-	CodingDependency        bool                `xml:"codingDependency,attr,omitempty"`
-	ScanType                string              `xml:"scanType,attr,omitempty"` //VideoScanType
-	FramePacking            []*Descriptor       `xml:"FramePacking,omitempty"`
-	AudioChannelConfig      []*Descriptor       `xml:"AudioChannelConfiguration,omitempty"`
-	ContentProtection       []*Descriptor       `xml:"ContentProtection,omitempty"`
-	EssentialProperty       []*Descriptor       `xml:"EssentialProperty,omitempty"`
-	SupplementalProperty    []*Descriptor       `xml:"SupplementalProperty,omitempty"`
-	InbandEventStream       []*Descriptor       `xml:"InbandEventStream,omitempty"`
-	//CommonComponents        *CommonComponents
+	XlinkHref               string                 `xml:"http://www.w3.org/1999/xlink href,attr,omitempty"`
+	XlinkActuate            string                 `xml:"http://www.w3.org/1999/xlink actuate,attr,omitempty"` //Possible Values: 'onLoad', 'onRequest'. Default: onRequest.
+	ID                      int                    `xml:"id,attr,omitempty"`
+	Group                   int                    `xml:"group,attr,omitempty"`
+	Lang                    string                 `xml:"lang,attr,omitempty"`
+	ContentType             string                 `xml:"contentType,attr,omitempty"`
+	Par                     string                 `xml:"par,attr,omitempty"` //Optional. Picture Aspect Ratio. TODO:check specs for validation (regex)
+	MinBandwidth            int                    `xml:"minBandwith,attr,omitempty"`
+	MaxBandwidth            int                    `xml:"maxBandwidth,attr,omitempty"`
+	MinWidth                int                    `xml:"minWidth,attr,omitempty"`
+	MaxWidth                int                    `xml:"maxWidth,attr,omitempty"`
+	MinHeight               int                    `xml:"minHeight,attr,omitempty"`
+	MaxHeight               int                    `xml:"maxHeight,attr,omitempty"`
+	MinFrameRate            string                 `xml:"minFrameRate,attr,omitempty"` //TODO:Check specs for validation (regex)
+	MaxFrameRate            string                 `xml:"maxFrameRate,attr,omitempty"`
+	SegmentAlignment        bool                   `xml:"segmentAlignment,attr,omitempty"`        //Default: false. TODO: check specs for validation. Accepts 0,1 or true,false
+	BitstreamSwitching      bool                   `xml:"bitstreamSwitching,attr,omitempty"`      //TODO: check specs for validation. Accepts 0,1 or true,false
+	SubsegmentAlignment     bool                   `xml:"subsegmentAlignment,attr,omitempty"`     //Default: false. TODO: check specs for validation
+	SubsegmentStartsWithSAP int                    `xml:"subsegmentStartsWithSap,attr,omitempty"` //Default: 0. TODO: check specs for validation
+	Profiles                string                 `xml:"profiles,attr,omitempty"`
+	Width                   int                    `xml:"width,attr,omitempty"`
+	Height                  int                    `xml:"height,attr,omitempty"`
+	Sar                     string                 `xml:"sar,attr,omitempty"`       //RatioType
+	FrameRate               string                 `xml:"frameRate,attr,omitempty"` //FrameRateType
+	AudioSamplingRate       string                 `xml:"audioSamplingRate,attr,omitempty"`
+	MimeType                string                 `xml:"mimeType,attr,omitempty"`
+	SegmentProfiles         string                 `xml:"segmentProfiles,attr,omitempty"`
+	Codecs                  string                 `xml:"codecs,attr,omitempty"`
+	MaxSAPPeriod            float64                `xml:"maximumSAPPeriod,attr,omitempty"` //seconds
+	StartWithSAP            int                    `xml:"startWithSAP,attr,omitempty"`     //SAPType
+	MaxPlayoutRate          float64                `xml:"maxPlayoutRate,attr,omitempty"`
+	CodingDependency        bool                   `xml:"codingDependency,attr,omitempty"`
+	ScanType                string                 `xml:"scanType,attr,omitempty"` //VideoScanType
+	CENCContentProtections  CENCContentProtections `xml:"ContentProtection,omitempty"`
+	FramePacking            []*Descriptor          `xml:"FramePacking,omitempty"`
+	AudioChannelConfig      []*Descriptor          `xml:"AudioChannelConfiguration,omitempty"`
+	EssentialProperty       []*Descriptor          `xml:"EssentialProperty,omitempty"`
+	SupplementalProperty    []*Descriptor          `xml:"SupplementalProperty,omitempty"`
+	InbandEventStream       []*Descriptor          `xml:"InbandEventStream,omitempty"`
+	Accessibility           []*Descriptor          `xml:"Accessibility,omitempty"`
+	Role                    []*Descriptor          `xml:"Role,omitempty"`
+	Rating                  []*Descriptor          `xml:"Rating,omitempty"`
+	ViewPoint               []*Descriptor          `xml:"Viewpoint,omitempty"`
+	ContentComponent        []*ContentComponent    `xml:"ContentComponent,omitempty"`
+	BaseURL                 []*BaseURL             `xml:"BaseURL,omitempty"`
+	SegmentBase             *SegmentBase           `xml:"SegmentBase,omitempty"`
+	SegmentList             *SegmentList           `xml:"SegmentList,omitempty"`
+	SegmentTemplate         *SegmentTemplate       `xml:"SegmentTemplate,omitempty"`
+	Representations         Representations        `xml:"Representation,omitempty"`
+}
+
+type ContentProtection struct {
+	XMLName     xml.Name `xml:"ContentProtection"`
+	XMLNsCenc   string   `xml:"xmlns:cenc,attr,omitempty"`
+	XMLNsMsrp   string   `xml:"xmlns:mspr,attr,omitempty"`
+	SchemeIDURI string   `xml:"schemeIdUri,attr,omitempty"`
+	Value       string   `xml:"value,attr,omitempty"`
+	DefaultKID  string   `xml:"cenc:default_KID,attr,omitempty"`
+}
+
+//CENCContentProtection references ContentProtection element. The attribute
+//cenc:default_KID is recommended for inclusion in the mp4protection Descriptor
+//to identify the license required in one place for all systems.
+type CENCContentProtection struct {
+	ContentProtection
+	Pssh *Pssh
+	Pro  *Playready //Microsoft PlayReady
+}
+
+type CENCContentProtections []*CENCContentProtection
+
+//Pssh (Protection System Specific Header) represents the optional cenc:pssh element
+//that can be used by all DRM ContentProtection Descriptors for improved interoperability.
+type Pssh struct {
+	XMLName xml.Name `xml:"cenc:pssh,omitempty"`
+	Value   string   `xml:",innerxml"`
+}
+
+//Playready represents Microsoft Play Ready DRM system
+type Playready struct {
+	XMLName     xml.Name `xml:"mspr:pro,omitempty"`
+	Value       string   `xml:",innerxml"`
+	IsEncrypted int      `xml:"msrp:IsEncrypted,omitempty"`
+	IVSize      int      `xml:"msrp:IV_size,omitempty"`
+	KID         string   `xml:"msrp:kid,omitempty"`
 }
 
 //ContentComponent ...
@@ -276,90 +307,64 @@ type ContentComponent struct {
 
 //Representation represents a deliverable encoded version of one or more media components.
 type Representation struct {
-	ID                      string               `xml:"id,attr"` //Required. TODO:Check validation (regex)
-	Bandwidth               int                  `xml:"bandwidth,attr,omitempty"`
-	QualityRanking          int                  `xml:"qualityRanking,attr,omitempty"`
-	DependencyID            string               `xml:"dependencyId,attr,omitempty"`            //Whitespace separated list of int
-	MediaStreamsStructureID string               `xml:"mediaStreamsStructureId,attr,omitempty"` //Whitespace separated list of int
-	BaseURL                 []*BaseURL           `xml:"BaseURL,omitempty"`
-	SubRepresentation       []*SubRepresentation `xml:"SubRepresentation,omitempty"`
-	SegmentBase             *SegmentBase         `xml:"SegmentBase,omitempty"`
-	SegmentList             *SegmentList         `xml:"SegmentList,omitempty"`
-	SegmentTemplate         *SegmentTemplate     `xml:"SegmentTemplate,omitempty"`
-	Profiles                string               `xml:"profiles,attr,omitempty"`
-	Width                   int                  `xml:"width,attr,omitempty"`
-	Height                  int                  `xml:"height,attr,omitempty"`
-	Sar                     string               `xml:"sar,attr,omitempty"`       //RatioType
-	FrameRate               string               `xml:"frameRate,attr,omitempty"` //FrameRateType
-	AudioSamplingRate       string               `xml:"audioSamplingRate,attr,omitempty"`
-	MimeType                string               `xml:"mimeType,attr,omitempty"`
-	SegmentProfiles         string               `xml:"segmentProfiles,attr,omitempty"`
-	Codecs                  string               `xml:"codecs,attr,omitempty"`
-	MaxSAPPeriod            float64              `xml:"maximumSAPPeriod,attr,omitempty"`
-	StartWithSAP            int                  `xml:"startWithSAP,attr,omitempty"` //SAPType
-	MaxPlayoutRate          float64              `xml:"maxPlayoutRate,attr,omitempty"`
-	CodingDependency        bool                 `xml:"codingDependency,attr,omitempty"`
-	ScanType                string               `xml:"scanType,attr,omitempty"` //VideoScanType
-	FramePacking            []*Descriptor        `xml:"FramePacking,omitempty"`
-	AudioChannelConfig      []*Descriptor        `xml:"AudioChannelConfiguration,omitempty"`
-	ContentProtection       []*Descriptor        `xml:"ContentProtection,omitempty"`
-	EssentialProperty       []*Descriptor        `xml:"EssentialProperty,omitempty"`
-	SupplementalProperty    []*Descriptor        `xml:"SupplementalProperty,omitempty"`
-	InbandEventStream       []*Descriptor        `xml:"InbandEventStream,omitempty"`
-	//CommonComponents *CommonComponents `xml:"Representation"`
+	ID                      string                 `xml:"id,attr"` //Required.
+	Bandwidth               int                    `xml:"bandwidth,attr,omitempty"`
+	QualityRanking          int                    `xml:"qualityRanking,attr,omitempty"`
+	DependencyID            string                 `xml:"dependencyId,attr,omitempty"`            //Whitespace separated list of int
+	MediaStreamsStructureID string                 `xml:"mediaStreamsStructureId,attr,omitempty"` //Whitespace separated list of int
+	Profiles                string                 `xml:"profiles,attr,omitempty"`
+	Width                   int                    `xml:"width,attr,omitempty"`
+	Height                  int                    `xml:"height,attr,omitempty"`
+	Sar                     string                 `xml:"sar,attr,omitempty"`       //RatioType
+	FrameRate               string                 `xml:"frameRate,attr,omitempty"` //FrameRateType
+	AudioSamplingRate       string                 `xml:"audioSamplingRate,attr,omitempty"`
+	MimeType                string                 `xml:"mimeType,attr,omitempty"`
+	SegmentProfiles         string                 `xml:"segmentProfiles,attr,omitempty"`
+	Codecs                  string                 `xml:"codecs,attr,omitempty"`
+	MaxSAPPeriod            float64                `xml:"maximumSAPPeriod,attr,omitempty"`
+	StartWithSAP            int                    `xml:"startWithSAP,attr,omitempty"` //SAPType
+	MaxPlayoutRate          float64                `xml:"maxPlayoutRate,attr,omitempty"`
+	CodingDependency        bool                   `xml:"codingDependency,attr,omitempty"`
+	ScanType                string                 `xml:"scanType,attr,omitempty"` //VideoScanType
+	CENCContentProtections  CENCContentProtections `xml:"ContentProtection,omitempty"`
+	FramePacking            []*Descriptor          `xml:"FramePacking,omitempty"`
+	AudioChannelConfig      []*Descriptor          `xml:"AudioChannelConfiguration,omitempty"`
+	EssentialProperty       []*Descriptor          `xml:"EssentialProperty,omitempty"`
+	SupplementalProperty    []*Descriptor          `xml:"SupplementalProperty,omitempty"`
+	InbandEventStream       []*Descriptor          `xml:"InbandEventStream,omitempty"`
+	BaseURL                 []*BaseURL             `xml:"BaseURL,omitempty"`
+	SubRepresentation       []*SubRepresentation   `xml:"SubRepresentation,omitempty"`
+	SegmentBase             *SegmentBase           `xml:"SegmentBase,omitempty"`
+	SegmentList             *SegmentList           `xml:"SegmentList,omitempty"`
+	SegmentTemplate         *SegmentTemplate       `xml:"SegmentTemplate,omitempty"`
 }
 
 //SubRepresentation represents SubRepresentation elements. Describes properties of one or several media
 //content components that are embedded in the Representation. TODO: check specs for validation. check validation
 //for common attributes with Representation
 type SubRepresentation struct {
-	Level                *int          `xml:"level,attr,omitempty"`
-	DependencyLevel      CustomInt     `xml:"dependencyLevel,attr,omitempty"` //Whitespace separated list of int
-	Bandwidth            int           `xml:"bandwidth,attr,omitempty"`
-	ContentComponent     string        `xml:"contentComponent,attr,omitempty"` //Whitespace separated list of string
-	Profiles             string        `xml:"profiles,attr,omitempty"`
-	Width                int           `xml:"width,attr,omitempty"`
-	Height               int           `xml:"height,attr,omitempty"`
-	Sar                  string        `xml:"sar,attr,omitempty"`       //RatioType
-	FrameRate            string        `xml:"frameRate,attr,omitempty"` //FrameRateType
-	AudioSamplingRate    string        `xml:"audioSamplingRate,attr,omitempty"`
-	MimeType             string        `xml:"mimeType,attr,omitempty"`
-	SegmentProfiles      string        `xml:"segmentProfiles,attr,omitempty"`
-	Codecs               string        `xml:"codecs,attr,omitempty"`
-	MaxSAPPeriod         float64       `xml:"maximumSAPPeriod,attr,omitempty"`
-	StartWithSAP         int           `xml:"startWithSAP,attr,omitempty"` //SAPType
-	MaxPlayoutRate       float64       `xml:"maxPlayoutRate,attr,omitempty"`
-	CodingDependency     bool          `xml:"codingDependency,attr,omitempty"`
-	ScanType             string        `xml:"scanType,attr,omitempty"` //VideoScanType
-	FramePacking         []*Descriptor `xml:"FramePacking,omitempty"`
-	AudioChannelConfig   []*Descriptor `xml:"AudioChannelConfiguration,omitempty"`
-	ContentProtection    []*Descriptor `xml:"ContentProtection,omitempty"`
-	EssentialProperty    []*Descriptor `xml:"EssentialProperty,omitempty"`
-	SupplementalProperty []*Descriptor `xml:"SupplementalProperty,omitempty"`
-	InbandEventStream    []*Descriptor `xml:"InbandEventStream,omitempty"`
-	//	CommonComponents *CommonComponents
+	Level                  *int                   `xml:"level,attr,omitempty"`
+	DependencyLevel        CustomInt              `xml:"dependencyLevel,attr,omitempty"` //Whitespace separated list of int
+	Bandwidth              int                    `xml:"bandwidth,attr,omitempty"`
+	ContentComponent       string                 `xml:"contentComponent,attr,omitempty"` //Whitespace separated list of string
+	Profiles               string                 `xml:"profiles,attr,omitempty"`
+	Width                  int                    `xml:"width,attr,omitempty"`
+	Height                 int                    `xml:"height,attr,omitempty"`
+	Sar                    string                 `xml:"sar,attr,omitempty"`       //RatioType
+	FrameRate              string                 `xml:"frameRate,attr,omitempty"` //FrameRateType
+	AudioSamplingRate      string                 `xml:"audioSamplingRate,attr,omitempty"`
+	MimeType               string                 `xml:"mimeType,attr,omitempty"`
+	SegmentProfiles        string                 `xml:"segmentProfiles,attr,omitempty"`
+	Codecs                 string                 `xml:"codecs,attr,omitempty"`
+	MaxSAPPeriod           float64                `xml:"maximumSAPPeriod,attr,omitempty"`
+	StartWithSAP           int                    `xml:"startWithSAP,attr,omitempty"` //SAPType
+	MaxPlayoutRate         float64                `xml:"maxPlayoutRate,attr,omitempty"`
+	CodingDependency       bool                   `xml:"codingDependency,attr,omitempty"`
+	ScanType               string                 `xml:"scanType,attr,omitempty"` //VideoScanType
+	CENCContentProtections CENCContentProtections `xml:"ContentProtection,omitempty"`
+	FramePacking           []*Descriptor          `xml:"FramePacking,omitempty"`
+	AudioChannelConfig     []*Descriptor          `xml:"AudioChannelConfiguration,omitempty"`
+	EssentialProperty      []*Descriptor          `xml:"EssentialProperty,omitempty"`
+	SupplementalProperty   []*Descriptor          `xml:"SupplementalProperty,omitempty"`
+	InbandEventStream      []*Descriptor          `xml:"InbandEventStream,omitempty"`
 }
-
-// //CommonComponents are attributes and elements present in AdaptationSet, Representation and SubRepresentation elements
-// type CommonComponents struct {
-// 	Profiles             string        `xml:"profiles,attr,omitempty"`
-// 	Width                int           `xml:"width,attr,omitempty"`
-// 	Height               int           `xml:"height,attr,omitempty"`
-// 	Sar                  string        `xml:"sar,attr,omitempty"`       //RatioType
-// 	FrameRate            string        `xml:"frameRate,attr,omitempty"` //FrameRateType
-// 	AudioSamplingRate    string        `xml:"audioSamplingRate,attr,omitempty"`
-// 	MimeType             string        `xml:"mimeType,attr,omitempty"`
-// 	SegmentProfiles      string        `xml:"segmentProfiles,attr,omitempty"`
-// 	Codecs               string        `xml:"codecs,attr,omitempty"`
-// 	MaxSAPPeriod         float64       `xml:"maximumSAPPeriod,attr,omitempty"`
-// 	StartWithSAP         int           `xml:"startWithSAP,attr,omitempty"` //SAPType
-// 	MaxPlayoutRate       float64       `xml:"maxPlayoutRate,attr,omitempty"`
-// 	CodingDependency     bool          `xml:"codingDependency,attr,omitempty"`
-// 	ScanType             string        `xml:"scanType,attr,omitempty"` //VideoScanType
-// 	FramePacking         []*Descriptor `xml:"FramePacking,omitempty"`
-// 	AudioChannelConfig   []*Descriptor `xml:"AudioChannelConfiguration,omitempty"`
-// 	ContentProtection    []*Descriptor `xml:"ContentProtection,omitempty"`
-// 	EssentialProperty    []*Descriptor `xml:"EssentialProperty,omitempty"`
-// 	SupplementalProperty []*Descriptor `xml:"SupplementalProperty,omitempty"`
-// 	InbandEventStream    []*Descriptor `xml:"InbandEventStream,omitempty"`
-// }
