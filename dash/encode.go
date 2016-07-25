@@ -13,9 +13,6 @@ func (m *MPD) Encode() (io.Reader, error) {
 		return nil, err
 	}
 
-	//Sorts elements that need to be in order for encoding
-	m.sort()
-
 	output, err := xml.MarshalIndent(m, "", " ")
 	if err != nil {
 		return nil, err

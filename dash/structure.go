@@ -10,15 +10,12 @@ import "encoding/xml"
 //Research content protection and complement struct
 
 const (
-	DashNS = "urn:mpeg:dash:schema:mpd:2011"
-	CencNS = "urn:mpeg:cenc:2013"
-	MsprNS = "urn:microsoft:playready"
+	dashNS = "urn:mpeg:dash:schema:mpd:2011"
+	cencNS = "urn:mpeg:cenc:2013"
+	msprNS = "urn:microsoft:playready"
 )
 
 //MPD represents a Media Presentation Description.
-//TODO:xsi namespace prefix unmarshals successfully, but errors on marshalling:
-//It renders: xmlns:XMLSchema-instance="http://www.w3.org/2001/XMLSchema-instance"
-//XMLSchema-instance:schemaLocation="urn:mpeg:dash:schema:mpd:2011 DASH-MPD.xsd"
 type MPD struct {
 	XMLNS                 string                `xml:"xmlns,attr,omitempty"`
 	SchemaLocation        string                `xml:"http://www.w3.org/2001/XMLSchema-instance schemaLocation,attr,omitempty"`
@@ -85,8 +82,8 @@ type Period struct {
 	XlinkHref          string           `xml:"http://www.w3.org/1999/xlink href,attr,omitempty"`    //Optional
 	XlinkActuate       string           `xml:"http://www.w3.org/1999/xlink actuate,attr,omitempty"` //Optional. Possible Values: onDemand, onRequest
 	ID                 string           `xml:"id,attr,omitempty"`                                   //Optional. Must be unique. If type "dynamic", id must be present and not updated.
-	Start              *CustomDuration  `xml:"start,attr,omitempty"`                                //Optional. Used as anchor to determine the start of each Media Segment. TODO:Check when not present
-	Duration           *CustomDuration  `xml:"duration,attr,omitempty"`                             //Optional. Determine the Start time of next Period. TODO:check when not present
+	Start              *CustomDuration  `xml:"start,attr,omitempty"`                                //Optional. Used as anchor to determine the start of each Media Segment.
+	Duration           *CustomDuration  `xml:"duration,attr,omitempty"`                             //Optional. Determine the Start time of next Period.
 	BitstreamSwitching bool             `xml:"bitstreamSwitching,attr,omitempty"`                   //Optional. Default: false. If 'true', means that every AdaptationSet.BitstreamSwitching is set to 'true'. TODO: check if there's 'false' on AdaptationSet
 	BaseURL            []*BaseURL       `xml:"BaseURL,omitempty"`                                   //Optional
 	SegmentBase        *SegmentBase     `xml:"SegmentBase,omitempty"`                               //Optional. Default Segment Base information. Overidden by AdaptationSet.SegmentBase and Representation.SegmentBase
@@ -191,7 +188,7 @@ type SegmentTimeline struct {
 	Segments Segments `xml:"S"` //Must have at least 1 S element.
 }
 
-//S is contained in a SegmentTimeline tag. TODO:Check specs for validation.
+//S is contained in a SegmentTimeline tag.
 type S struct {
 	T int `xml:"t,attr"` //Optional. Specifies MPD start time, in timescale units. Relative to the befinning of the Period.
 	D int `xml:"d,attr"` //Required. Segment duration int timescale units. Must not exceed the value of MPD.MaxSegmentDuration.
@@ -257,25 +254,32 @@ type AdaptationSet struct {
 	Representations         Representations        `xml:"Representation,omitempty"`
 }
 
+//ContentProtection represents the root ContentProtection element.
 type ContentProtection struct {
 	XMLName     xml.Name `xml:"ContentProtection"`
 	XMLNsCenc   string   `xml:"xmlns:cenc,attr,omitempty"`
-	XMLNsMsrp   string   `xml:"xmlns:mspr,attr,omitempty"`
+	XMLNsMspr   string   `xml:"xmlns:mspr,attr,omitempty"`
 	SchemeIDURI string   `xml:"schemeIdUri,attr,omitempty"`
 	Value       string   `xml:"value,attr,omitempty"`
 	DefaultKID  string   `xml:"cenc:default_KID,attr,omitempty"`
 }
 
-//CENCContentProtection references ContentProtection element. The attribute
-//cenc:default_KID is recommended for inclusion in the mp4protection Descriptor
-//to identify the license required in one place for all systems.
+//CENCContentProtection represents the full ContentProtection element.
+//
+//Note for Playready encryption: the elements defined in the “mspr” namespace for the
+//first edition of Common Encryption (mspr:IsEncrypted, mspr:IV_size, and mspr:kid),
+//are deprecated and functionally replaced by cenc:default_KID specified in the second
+//edition of Common Encryption [CENC].
+//The IV_size and IsEncrypted fields in the Track Encryption Box (‘tenc’) are used during decryption,
+//but are not needed in MPD ContentProtection Descriptor elements.
 type CENCContentProtection struct {
 	ContentProtection
-	Pssh *Pssh
-	Pro  *Playready //Microsoft PlayReady
+	Pssh        *Pssh
+	Pro         *Pro
+	IsEncrypted string `xml:"mspr:IsEncrypted,omitempty"`
+	IVSize      int    `xml:"mspr:IV_size,omitempty"`
+	KID         string `xml:"mspr:kid,omitempty"`
 }
-
-type CENCContentProtections []*CENCContentProtection
 
 //Pssh (Protection System Specific Header) represents the optional cenc:pssh element
 //that can be used by all DRM ContentProtection Descriptors for improved interoperability.
@@ -284,13 +288,10 @@ type Pssh struct {
 	Value   string   `xml:",innerxml"`
 }
 
-//Playready represents Microsoft Play Ready DRM system
-type Playready struct {
-	XMLName     xml.Name `xml:"mspr:pro,omitempty"`
-	Value       string   `xml:",innerxml"`
-	IsEncrypted int      `xml:"msrp:IsEncrypted,omitempty"`
-	IVSize      int      `xml:"msrp:IV_size,omitempty"`
-	KID         string   `xml:"msrp:kid,omitempty"`
+//Pro represents a Playready Header Object.
+type Pro struct {
+	XMLName xml.Name `xml:"mspr:pro,omitempty"`
+	Value   string   `xml:",innerxml"`
 }
 
 //ContentComponent ...

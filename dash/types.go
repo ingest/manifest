@@ -34,6 +34,9 @@ type AdaptationSets []*AdaptationSet
 //Representations ...
 type Representations []*Representation
 
+//CENCContentProtections ...
+type CENCContentProtections []*CENCContentProtection
+
 //CustomTime is a custom type of time.Time that implements XML marshaller and unmarshaller
 type CustomTime struct {
 	time.Time
@@ -76,7 +79,7 @@ func (c *CustomDuration) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
 
 //CustomInt is a custom type for UIntVectorType that implements XML marshaller and unmarshaller
 type CustomInt struct {
-	CI []int
+	Value []int
 }
 
 //UnmarshalXMLAttr implementes UnmarshalerAttr interface for CustomInt
@@ -89,7 +92,7 @@ func (c *CustomInt) UnmarshalXMLAttr(attr xml.Attr) (err error) {
 		if err != nil {
 			return
 		}
-		c.CI = append(c.CI, int(i))
+		c.Value = append(c.Value, int(i))
 	}
 	return
 }
@@ -98,8 +101,8 @@ func (c *CustomInt) UnmarshalXMLAttr(attr xml.Attr) (err error) {
 func (c *CustomInt) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
 	var ci []string
 	var attr xml.Attr
-	if len(c.CI) > 0 {
-		for _, i := range c.CI {
+	if len(c.Value) > 0 {
+		for _, i := range c.Value {
 			ci = append(ci, strconv.Itoa(i))
 		}
 		attr = xml.Attr{Name: name, Value: strings.Join(ci, " ")}

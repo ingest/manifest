@@ -5,46 +5,47 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 )
 
 //NewMPD initiates a MPD struct with the minimum required attributes
 func NewMPD(profile string, minBufferTime time.Duration) *MPD {
-	return &MPD{XMLNS: DashNS,
+	return &MPD{XMLNS: dashNS,
 		Type:          "static",
 		Profiles:      profile,
 		MinBufferTime: &CustomDuration{Duration: minBufferTime},
 	}
 }
 
-//NewPlayreadyContentProtection sets ContentProtection element with the appropriate
+//NewContentProtection sets ContentProtection element with the appropriate
 //namespaces.
-func NewPlayreadyContentProtection(schemeIdUri string,
+func NewContentProtection(schemeIDUri string,
 	value string,
 	defaultKID string,
 	pssh string,
 	pro string) *CENCContentProtection {
 	cp := &CENCContentProtection{
 		ContentProtection: ContentProtection{
-			SchemeIDURI: schemeIdUri,
+			SchemeIDURI: schemeIDUri,
 			Value:       value,
 		},
 	}
 	if defaultKID != "" {
-		cp.ContentProtection.XMLNsCenc = CencNS
+		cp.ContentProtection.XMLNsCenc = cencNS
 		cp.ContentProtection.DefaultKID = defaultKID
 	}
 	if pssh != "" {
-		cp.ContentProtection.XMLNsCenc = CencNS
+		cp.ContentProtection.XMLNsCenc = cencNS
 		cp.Pssh = &Pssh{
 			XMLName: xml.Name{Local: "pssh", Space: "cenc"},
 			Value:   pssh,
 		}
 	}
 	if pro != "" {
-		cp.ContentProtection.XMLNsMsrp = MsprNS
-		cp.Pro = &Playready{
+		cp.ContentProtection.XMLNsMspr = msprNS
+		cp.Pro = &Pro{
 			XMLName: xml.Name{Local: "pro", Space: "mspr"},
 			Value:   pro,
 		}
@@ -53,9 +54,25 @@ func NewPlayreadyContentProtection(schemeIdUri string,
 	return cp
 }
 
-//sort orders MPD elements
-func (m *MPD) sort() {
+//SetTrackEncryptionBox sets PlayReady's Track Encryption Box fields (tenc).
+func (c *CENCContentProtection) SetTrackEncryptionBox(ivSize int, kid string) {
+	c.ContentProtection.XMLNsMspr = msprNS
+	c.IsEncrypted = "1"
+	c.IVSize = ivSize
+	c.KID = kid
+}
 
+//AddSegment adds a Segment to a SegmentTimeline and sorts it.
+func (st *SegmentTimeline) AddSegment(t, d, r int) {
+	if st == nil {
+		return
+	}
+	s := &S{T: t,
+		D: d,
+		R: r,
+	}
+	st.Segments = append(st.Segments, s)
+	sort.Sort(st.Segments)
 }
 
 func (m *MPD) validate() error {
@@ -251,6 +268,7 @@ func xlinkActuateError(buf *bytes.Buffer, element string, xlinkActuate string) {
 	}
 }
 
+//checks if only one out of SegmentBase, SegmentList and SegmentTemplate is present
 func validateSegmentPresence(sb *SegmentBase, st *SegmentTemplate, sl *SegmentList) bool {
 	var segment int
 	if sb != nil {

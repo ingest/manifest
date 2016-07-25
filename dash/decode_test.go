@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-//TODO:Check for every struct field possible.
 func TestStaticParse(t *testing.T) {
 	f, err := os.Open("./testdata/static.mpd")
 	if err != nil {
