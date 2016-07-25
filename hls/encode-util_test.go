@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"stash.redspace.com/ing/manifest"
 )
 
 func TestWriteXMedia(t *testing.T) {
@@ -18,11 +20,11 @@ func TestWriteXMedia(t *testing.T) {
 		URI:      "http://test.com",
 	}
 
-	buf := NewBufWrapper()
+	buf := manifest.NewBufWrapper()
 
 	rendition.writeXMedia(buf)
-	if buf.err != nil {
-		t.Errorf("Expected err to be nil, but got %s", buf.err.Error())
+	if buf.Err != nil {
+		t.Errorf("Expected err to be nil, but got %s", buf.Err.Error())
 	}
 }
 
@@ -31,11 +33,11 @@ func TestWriteXMediaTypeError(t *testing.T) {
 		GroupID: "TestID",
 	}
 
-	buf := NewBufWrapper()
+	buf := manifest.NewBufWrapper()
 
 	rendition.writeXMedia(buf)
-	if buf.err.Error() != attributeNotSetError("EXT-X-MEDIA", "TYPE").Error() {
-		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "TYPE"), buf.err.Error())
+	if buf.Err.Error() != attributeNotSetError("EXT-X-MEDIA", "TYPE").Error() {
+		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "TYPE"), buf.Err.Error())
 	}
 }
 
@@ -44,11 +46,11 @@ func TestWriteXMediaGroupError(t *testing.T) {
 		Type: "AUDIO",
 	}
 
-	buf := NewBufWrapper()
+	buf := manifest.NewBufWrapper()
 
 	rendition.writeXMedia(buf)
-	if buf.err.Error() != attributeNotSetError("EXT-X-MEDIA", "GROUP-ID").Error() {
-		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "GROUP-ID"), buf.err.Error())
+	if buf.Err.Error() != attributeNotSetError("EXT-X-MEDIA", "GROUP-ID").Error() {
+		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "GROUP-ID"), buf.Err.Error())
 	}
 }
 
@@ -60,26 +62,26 @@ func TestWriteXMediaInvalid(t *testing.T) {
 		Name:       "Test",
 	}
 
-	buf := NewBufWrapper()
+	buf := manifest.NewBufWrapper()
 
 	rendition.writeXMedia(buf)
-	if buf.err != nil {
+	if buf.Err != nil {
 		t.Errorf("Expected err to be nil")
 	}
 
 	rendition.URI = "test"
-	buf = NewBufWrapper()
+	buf = manifest.NewBufWrapper()
 	rendition.writeXMedia(buf)
-	if strings.Contains(buf.buf.String(), "URI") {
+	if strings.Contains(buf.Buf.String(), "URI") {
 		t.Error("Expected buf to not contain URI")
 	}
 
 	rendition.Type = "SUBTITLES"
 	rendition.URI = ""
-	buf = NewBufWrapper()
+	buf = manifest.NewBufWrapper()
 	rendition.writeXMedia(buf)
-	if buf.err.Error() != attributeNotSetError("EXT-X-MEDIA", "URI for SUBTITLES").Error() {
-		t.Errorf("Exptected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "URI for SUBTITLES").Error(), buf.err.Error())
+	if buf.Err.Error() != attributeNotSetError("EXT-X-MEDIA", "URI for SUBTITLES").Error() {
+		t.Errorf("Exptected err to be %s, but got %s", attributeNotSetError("EXT-X-MEDIA", "URI for SUBTITLES").Error(), buf.Err.Error())
 	}
 }
 
@@ -91,18 +93,18 @@ func TestWriteStreamInf(t *testing.T) {
 		Resolution: "230x400",
 	}
 
-	buf := NewBufWrapper()
+	buf := manifest.NewBufWrapper()
 	variant.writeStreamInf(7, buf)
 
-	if buf.err != nil {
-		t.Fatalf("Expected err to be nil, but got %s", buf.err.Error())
+	if buf.Err != nil {
+		t.Fatalf("Expected err to be nil, but got %s", buf.Err.Error())
 	}
 
-	if !strings.Contains(buf.buf.String(), "#EXT-X-I-FRAME-STREAM-INF") {
+	if !strings.Contains(buf.Buf.String(), "#EXT-X-I-FRAME-STREAM-INF") {
 		t.Error("Expected buf to contain #EXT-X-I-FRAME-STREAM-INF")
 	}
 
-	if strings.Contains(buf.buf.String(), "#EXT-X-STREAM-INF") {
+	if strings.Contains(buf.Buf.String(), "#EXT-X-STREAM-INF") {
 		t.Error("Expected buf to not contain #EXT-X-STREAM-INF")
 	}
 }
@@ -229,57 +231,57 @@ func TestGenerateMediaPlaylist(t *testing.T) {
 }
 
 func TestDateRange(t *testing.T) {
-	buf := NewBufWrapper()
+	buf := manifest.NewBufWrapper()
 	d := &DateRange{}
 	d.writeDateRange(buf)
-	if buf.err.Error() != attributeNotSetError("EXT-X-DATERANGE", "ID").Error() {
-		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-DATERANGE", "ID"), buf.err)
+	if buf.Err.Error() != attributeNotSetError("EXT-X-DATERANGE", "ID").Error() {
+		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-DATERANGE", "ID"), buf.Err)
 	}
 
-	buf = NewBufWrapper()
+	buf = manifest.NewBufWrapper()
 	d.ID = "test"
 	d.writeDateRange(buf)
-	if buf.err.Error() != attributeNotSetError("EXT-X-DATERANGE", "START-DATE").Error() {
-		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-DATERANGE", "START-DATE"), buf.err)
+	if buf.Err.Error() != attributeNotSetError("EXT-X-DATERANGE", "START-DATE").Error() {
+		t.Errorf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-DATERANGE", "START-DATE"), buf.Err)
 	}
 
-	buf = NewBufWrapper()
+	buf = manifest.NewBufWrapper()
 	d.StartDate = time.Now()
 	d.EndOnNext = true
 	d.writeDateRange(buf)
-	if buf.err == nil {
+	if buf.Err == nil {
 		t.Error("EndOnNext without Class should return error")
 	}
 
-	buf = NewBufWrapper()
+	buf = manifest.NewBufWrapper()
 	d.EndDate = time.Now().Add(-1 * time.Hour)
 	d.EndOnNext = false
 	d.writeDateRange(buf)
-	if buf.err == nil {
+	if buf.Err == nil {
 		t.Error("EndDate before StartDate should return error")
 	}
 }
 
 func TestMap(t *testing.T) {
-	buf := NewBufWrapper()
+	buf := manifest.NewBufWrapper()
 	m := &Map{
 		Byterange: &Byterange{
 			Length: 100,
 		},
 	}
 	m.writeMap(buf)
-	if buf.err.Error() != attributeNotSetError("EXT-X-MAP", "URI").Error() {
-		t.Fatalf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MAP", "URI").Error(), buf.err.Error())
+	if buf.Err.Error() != attributeNotSetError("EXT-X-MAP", "URI").Error() {
+		t.Fatalf("Expected err to be %s, but got %s", attributeNotSetError("EXT-X-MAP", "URI").Error(), buf.Err.Error())
 	}
 
-	buf = NewBufWrapper()
+	buf = manifest.NewBufWrapper()
 	m.URI = "test"
 	m.writeMap(buf)
-	if buf.err != nil {
+	if buf.Err != nil {
 		t.Error("Expected err to be nil")
 	}
 
-	if !strings.Contains(buf.buf.String(), "#EXT-X-MAP:URI=\"test\",BYTERANGE=\"100@0\"") {
+	if !strings.Contains(buf.Buf.String(), "#EXT-X-MAP:URI=\"test\",BYTERANGE=\"100@0\"") {
 		t.Error("Expected buf to contain #EXT-X-MAP")
 	}
 }

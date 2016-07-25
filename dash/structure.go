@@ -95,7 +95,7 @@ type Period struct {
 	Subsets            `xml:"Subset,omitempty"`
 }
 
-//EventStream ...
+//EventStream represents a sequence of related events.
 type EventStream struct { //TODO:check specs for validation
 	XlinkHref    string   `xml:"http://www.w3.org/1999/xlink href,attr,omitempty"`
 	XlinkActuate string   `xml:"http://www.w3.org/1999/xlink actuate,attr,omitempty"`
@@ -105,7 +105,8 @@ type EventStream struct { //TODO:check specs for validation
 	Event        []*Event `xml:"Event,omitempty"`
 }
 
-//Event ...
+//Event represents aperiodic sparse media-time related auxiliary information to DASH
+//client or an application.
 type Event struct {
 	Message  string `xml:",innerxml"`
 	PresTime int64  `xml:"presentationTime,attr,omitempty"`
@@ -143,10 +144,10 @@ type SegmentList struct {
 	IndexRangeExact     bool             `xml:"indexRangeExact,attr,omitempty"`          //Default: false. Must not be present if IndexRange isn't present.
 	AvTimeOffset        float64          `xml:"availabilityTimeOffset,attr,omitempty"`   //Optional.
 	AvTmeComplete       bool             `xml:"availabilityTimeComplete,attr,omitempty"` //Optional.
-	Initialization      *URLType         `xml:"Initialization,omitempty"`
-	RepresentationIndex *URLType         `xml:"RepresentationIndex,omitempty"`
 	Duration            int              `xml:"duration,attr,omitempty"`
 	StartNumber         int              `xml:"startNumber,attr,omitempty"`
+	Initialization      *URLType         `xml:"Initialization,omitempty"`
+	RepresentationIndex *URLType         `xml:"RepresentationIndex,omitempty"`
 	SegmentTimeline     *SegmentTimeline `xml:"SegmentTimeline,omitempty"`
 	BitstreamSwitching  *URLType         `xml:"BitstreamSwitching,omitempty"`
 	SegmentURLs         []*SegmentURL    `xml:"SegmentURL,omitempty"`
@@ -169,16 +170,16 @@ type SegmentTemplate struct {
 	IndexRangeExact        bool             `xml:"indexRangeExact,attr,omitempty"`          //Default: false. Must not be present if IndexRange isn't present.
 	AvTimeOffset           float64          `xml:"availabilityTimeOffset,attr,omitempty"`   //Optional.
 	AvTmeComplete          bool             `xml:"availabilityTimeComplete,attr,omitempty"` //Optional.
-	Initialization         *URLType         `xml:"Initialization,omitempty"`
-	RepresentationIndex    *URLType         `xml:"RepresentationIndex,omitempty"`
 	Duration               int              `xml:"duration,attr,omitempty"`
 	StartNumber            int              `xml:"startNumber,attr,omitempty"`
-	SegmentTimeline        *SegmentTimeline `xml:"SegmentTimeline,omitempty"`
-	BitstreamSwitching     *URLType         `xml:"BitstreamSwitching,omitempty"`
 	Media                  string           `xml:"media,attr,omitempty"`              //Optional. Template to create Media Segment List
 	Index                  string           `xml:"index,attr,omitempty"`              //Optional. Template to create the Index Segment List. If neither $Number% nor %Time% is included, it provides the URL to a Representation Index
 	InitializationAttr     string           `xml:"initialization,attr,omitempty"`     //Optional. Template to create Initialization Segment. $Number% and %Time% must not be included.
 	BitstreamSwitchingAttr string           `xml:"bitstreamSwitching,attr,omitempty"` //Optional. Template to create Bitstream Switching Segment. $Number% and %Time% must not be included.
+	Initialization         *URLType         `xml:"Initialization,omitempty"`
+	RepresentationIndex    *URLType         `xml:"RepresentationIndex,omitempty"`
+	SegmentTimeline        *SegmentTimeline `xml:"SegmentTimeline,omitempty"`
+	BitstreamSwitching     *URLType         `xml:"BitstreamSwitching,omitempty"`
 }
 
 //SegmentTimeline represents the earliest presentation time and duration for each Segment in the Representation.
@@ -294,7 +295,9 @@ type Pro struct {
 	Value   string   `xml:",innerxml"`
 }
 
-//ContentComponent ...
+//ContentComponent describes the properties of each media content component in an
+//Adaptation Set. If only one media content component is present, it can be described directly
+//in the Adaptation Set.
 type ContentComponent struct {
 	ID            int           `xml:"id,attr,omitempty"`
 	Lang          string        `xml:"lang,attr,omitempty"`
@@ -308,8 +311,8 @@ type ContentComponent struct {
 
 //Representation represents a deliverable encoded version of one or more media components.
 type Representation struct {
-	ID                      string                 `xml:"id,attr"` //Required.
-	Bandwidth               int                    `xml:"bandwidth,attr,omitempty"`
+	ID                      string                 `xml:"id,attr"`        //Required. It must not contain whitespace characters.
+	Bandwidth               int64                  `xml:"bandwidth,attr"` //Required.
 	QualityRanking          int                    `xml:"qualityRanking,attr,omitempty"`
 	DependencyID            string                 `xml:"dependencyId,attr,omitempty"`            //Whitespace separated list of int
 	MediaStreamsStructureID string                 `xml:"mediaStreamsStructureId,attr,omitempty"` //Whitespace separated list of int
@@ -340,9 +343,8 @@ type Representation struct {
 	SegmentTemplate         *SegmentTemplate       `xml:"SegmentTemplate,omitempty"`
 }
 
-//SubRepresentation represents SubRepresentation elements. Describes properties of one or several media
-//content components that are embedded in the Representation. TODO: check specs for validation. check validation
-//for common attributes with Representation
+//SubRepresentation describes properties of one or several media content components
+//that are embedded in the Representation. TODO: check specs for validation.
 type SubRepresentation struct {
 	Level                  *int                   `xml:"level,attr,omitempty"`
 	DependencyLevel        CustomInt              `xml:"dependencyLevel,attr,omitempty"` //Whitespace separated list of int

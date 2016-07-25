@@ -1,13 +1,14 @@
 package dash
 
 import (
-	"bytes"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
+
+	"stash.redspace.com/ing/manifest"
 )
 
 //NewMPD initiates a MPD struct with the minimum required attributes
@@ -76,15 +77,15 @@ func (st *SegmentTimeline) AddSegment(t, d, r int) {
 }
 
 func (m *MPD) validate() error {
-	buf := new(bytes.Buffer)
+	buf := manifest.NewBufWrapper()
 	m.validateMPD(buf)
-	if buf != nil && buf.String() != "" {
-		return errors.New(buf.String())
+	if buf.Buf != nil && buf.Buf.String() != "" {
+		return errors.New(buf.Buf.String())
 	}
-	return nil
+	return buf.Err
 }
 
-func (m *MPD) validateMPD(buf *bytes.Buffer) {
+func (m *MPD) validateMPD(buf *manifest.BufWrapper) {
 	if m != nil {
 		//validate attributes
 		if m.Profiles == "" {
@@ -128,7 +129,7 @@ func (m *MPD) validateMPD(buf *bytes.Buffer) {
 	}
 }
 
-func (p *Period) validate(buf *bytes.Buffer, mpdType string) {
+func (p *Period) validate(buf *manifest.BufWrapper, mpdType string) {
 	//validate XlinkActuate
 	xlinkActuateError(buf, "Period", p.XlinkActuate)
 
@@ -159,11 +160,11 @@ func (p *Period) validate(buf *bytes.Buffer, mpdType string) {
 	}
 }
 
-func (s *SegmentList) validate(buf *bytes.Buffer) {
+func (s *SegmentList) validate(buf *manifest.BufWrapper) {
 	xlinkActuateError(buf, "SegmentList", s.XlinkActuate)
 }
 
-func (a *AdaptationSet) validate(buf *bytes.Buffer) {
+func (a *AdaptationSet) validate(buf *manifest.BufWrapper) {
 	if a.Accessibility != nil {
 		for _, acess := range a.Accessibility {
 			acess.validate(buf, "Accessibility")
@@ -224,7 +225,41 @@ func (a *AdaptationSet) validate(buf *bytes.Buffer) {
 	}
 }
 
-func (r *Representation) validate(buf *bytes.Buffer) {
+func (r *Representation) validate(buf *manifest.BufWrapper) {
+	if r.ID == "" {
+		buf.WriteString("Representation field ID is required.\n")
+	} else if strings.Index(r.ID, " ") != -1 {
+		buf.WriteString("Representation field ID must not contain whitespace character.\n")
+	}
+	if r.Bandwidth == 0 {
+		buf.WriteString("Representation field Bandwidth is required.\n")
+	}
+	if r.AudioChannelConfig != nil {
+		for _, acc := range r.AudioChannelConfig {
+			acc.validate(buf, "AudioChannelConfig")
+		}
+	}
+	if r.EssentialProperty != nil {
+		for _, ep := range r.EssentialProperty {
+			ep.validate(buf, "EssentialProperty")
+		}
+	}
+	if r.FramePacking != nil {
+		for _, fp := range r.FramePacking {
+			fp.validate(buf, "FramePacking")
+		}
+	}
+	if r.InbandEventStream != nil {
+		for _, ies := range r.InbandEventStream {
+			ies.validate(buf, "InbandEventStream")
+		}
+	}
+	if r.SupplementalProperty != nil {
+		for _, sp := range r.SupplementalProperty {
+			sp.validate(buf, "SupplementalProperty")
+		}
+	}
+
 	r.SegmentBase.validate(buf)
 	//check if only one out of SegmentBase, SegmentList and SegmentTemplate is present
 	if !validateSegmentPresence(r.SegmentBase, r.SegmentTemplate, r.SegmentList) {
@@ -232,7 +267,7 @@ func (r *Representation) validate(buf *bytes.Buffer) {
 	}
 }
 
-func (s *SegmentBase) validate(buf *bytes.Buffer) {
+func (s *SegmentBase) validate(buf *manifest.BufWrapper) {
 	if s != nil {
 		if s.IndexRange == "" && s.IndexRangeExact {
 			buf.WriteString("SegmentBase element field IndexRangeExact must not be present if IndexRange isn't specified.\n")
@@ -240,7 +275,7 @@ func (s *SegmentBase) validate(buf *bytes.Buffer) {
 	}
 }
 
-func (m *Metrics) validate(buf *bytes.Buffer) {
+func (m *Metrics) validate(buf *manifest.BufWrapper) {
 	if m != nil {
 		if m.Metrics == "" {
 			buf.WriteString("Metrics field Metrics is required.\n")
@@ -256,13 +291,13 @@ func (m *Metrics) validate(buf *bytes.Buffer) {
 	}
 }
 
-func (d *Descriptor) validate(buf *bytes.Buffer, element string) {
+func (d *Descriptor) validate(buf *manifest.BufWrapper, element string) {
 	if d.SchemeIDURI == "" {
 		buf.WriteString(fmt.Sprintf("%s field SchemeIdURI is required.\n", element))
 	}
 }
 
-func xlinkActuateError(buf *bytes.Buffer, element string, xlinkActuate string) {
+func xlinkActuateError(buf *manifest.BufWrapper, element string, xlinkActuate string) {
 	if xlinkActuate != "" && xlinkActuate != "onLoad" && xlinkActuate != "onRequest" {
 		buf.WriteString(fmt.Sprintf("%s field XlinkActuate accepts values 'onRequest' and 'onLoad'.\n", element))
 	}

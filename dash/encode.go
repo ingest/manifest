@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/xml"
 	"io"
+
+	"stash.redspace.com/ing/manifest"
 )
 
 //Encode marshals an MPD structure into an MPD XML structure.
@@ -17,10 +19,10 @@ func (m *MPD) Encode() (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	//TODO: check error/use BufWrapper
-	buf := new(bytes.Buffer)
+
+	buf := manifest.NewBufWrapper()
 	buf.WriteString(xml.Header)
 	buf.Write(output)
 
-	return bytes.NewReader(buf.Bytes()), nil
+	return bytes.NewReader(buf.Buf.Bytes()), buf.Err
 }

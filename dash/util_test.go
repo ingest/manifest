@@ -1,10 +1,11 @@
 package dash
 
 import (
-	"bytes"
 	"strings"
 	"testing"
 	"time"
+
+	"stash.redspace.com/ing/manifest"
 )
 
 func TestNoPeriodError(t *testing.T) {
@@ -35,12 +36,12 @@ func TestRepresentation(t *testing.T) {
 		SegmentBase: &SegmentBase{Timescale: 1, IndexRangeExact: true},
 		SegmentList: &SegmentList{Timescale: 2},
 	}
-	buf := new(bytes.Buffer)
+	buf := manifest.NewBufWrapper()
 	rep.validate(buf)
-	if !strings.Contains(buf.String(), "IndexRangeExact must not be present") {
+	if !strings.Contains(buf.Buf.String(), "IndexRangeExact must not be present") {
 		t.Error("Expecting 'IndexRangeExact must not be present' error")
 	}
-	if !strings.Contains(buf.String(), "At most one of the three") {
+	if !strings.Contains(buf.Buf.String(), "At most one of the three") {
 		t.Error("Expecting 'At most one of the three, SegmentBase, SegmentTemplate and SegmentList' error")
 	}
 }
