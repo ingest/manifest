@@ -38,10 +38,25 @@ func TestRepresentation(t *testing.T) {
 	}
 	buf := manifest.NewBufWrapper()
 	rep.validate(buf)
+	if !strings.Contains(buf.Buf.String(), "Representation field ID is required") {
+		t.Error("Expecting 'ID is required' error")
+	}
+	if !strings.Contains(buf.Buf.String(), "Representation field Bandwidth is required") {
+		t.Error("Expecting 'Bandwidth is required' error")
+	}
 	if !strings.Contains(buf.Buf.String(), "IndexRangeExact must not be present") {
 		t.Error("Expecting 'IndexRangeExact must not be present' error")
 	}
 	if !strings.Contains(buf.Buf.String(), "At most one of the three") {
 		t.Error("Expecting 'At most one of the three, SegmentBase, SegmentTemplate and SegmentList' error")
+	}
+}
+
+func TestDescriptor(t *testing.T) {
+	test := Descriptor{Value: "test"}
+	buf := manifest.NewBufWrapper()
+	test.validate(buf, "Test")
+	if !strings.Contains(buf.Buf.String(), "Test field SchemeIdURI is required") {
+		t.Error("Expecting 'SchemeIdURI is required' error")
 	}
 }

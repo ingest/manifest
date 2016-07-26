@@ -2,13 +2,6 @@ package dash
 
 import "encoding/xml"
 
-//TODO:Go through every duration field, make sure it's seconds or h:m:s
-//Go through every int field, make sure int is enough or int64 better
-//Make sure int field of value 0 will appear on playlist when marshalling to xml
-//Look up if order of certain elements matter
-//Figure out how to separate common attr into generic structs. There's a lot of duplicated fields at the moment.
-//Research content protection and complement struct
-
 const (
 	dashNS = "urn:mpeg:dash:schema:mpd:2011"
 	cencNS = "urn:mpeg:cenc:2013"
@@ -57,7 +50,7 @@ type BaseURL struct {
 	AvTimeComplete  bool    `xml:"availabilityTimeComplete,attr,omitempty"`
 }
 
-//Metrics represents DASH Metrics.
+//Metrics ...
 type Metrics struct {
 	Metrics   string        `xml:"metrics,attr,omitempty"` //Required
 	Range     []*Range      `xml:"Range,omitempty"`        //Optional
@@ -96,7 +89,7 @@ type Period struct {
 }
 
 //EventStream represents a sequence of related events.
-type EventStream struct { //TODO:check specs for validation
+type EventStream struct {
 	XlinkHref    string   `xml:"http://www.w3.org/1999/xlink href,attr,omitempty"`
 	XlinkActuate string   `xml:"http://www.w3.org/1999/xlink actuate,attr,omitempty"`
 	SchemeIDURI  string   `xml:"schemeIdUri,attr,omitempty"`
@@ -133,7 +126,7 @@ type SegmentBase struct {
 	RepresentationIndex *URLType        `xml:"RepresentationIndex,omitempty"`
 }
 
-//SegmentList ... SegmentBase + MultipleSegmentBase
+//SegmentList conatins a list of SegmentURL elements.
 type SegmentList struct {
 	XlinkHref           string           `xml:"http://www.w3.org/1999/xlink href,attr,omitempty"`
 	XlinkActuate        string           `xml:"http://www.w3.org/1999/xlink actuate,attr,omitempty"`
@@ -153,7 +146,7 @@ type SegmentList struct {
 	SegmentURLs         []*SegmentURL    `xml:"SegmentURL,omitempty"`
 }
 
-//SegmentURL ...
+//SegmentURL may contain the Media Segment URL.
 type SegmentURL struct {
 	Media      string `xml:"media,attr,omitempty"`      //Optional. Combined with MediaRange, specifies HTTP-URL for Media Segment. If not present, MediaRange must be present and it's combined with BaseURL
 	MediaRange string `xml:"mediaRange,attr,omitempty"` //Optional. If not present, Media Segment is the entire resource in Media
@@ -161,7 +154,8 @@ type SegmentURL struct {
 	IndexRange string `xml:"indexRange,attr,omitempty"`
 }
 
-//SegmentTemplate ... SegmentBase + MultipleSegmentBase
+//SegmentTemplate specifies identifiers that are substituted by dynamic values assigned
+//to Segments, to create a list of Segments.
 type SegmentTemplate struct {
 	Timescale              int              `xml:"timescale,attr,omitempty"`                //Optional. If not present, it must be set to 1.
 	PresTimeOffset         int64            `xml:"presentationTimeOffset,attr,omitempty"`   //Optional.
@@ -196,7 +190,9 @@ type S struct {
 	R int `xml:"r,attr"` //Default: 0. Specifies repeat count of number of following continguous segments with same duration as D.
 }
 
-//Subset ..
+//Subset restricts the combination of active AdaptationSets where an active
+//Adaptation Set is one for which the DASH client is presenting at least one of the
+//contained Representation. No subset should contain all the Adaptaion Sets.
 type Subset struct {
 	Contains CustomInt `xml:"contains,attr"` //Required. Whitespace separated list.
 	ID       string    `xml:"id,attr,omitempty"`
@@ -299,7 +295,7 @@ type Pro struct {
 //Adaptation Set. If only one media content component is present, it can be described directly
 //in the Adaptation Set.
 type ContentComponent struct {
-	ID            int           `xml:"id,attr,omitempty"`
+	ID            *int          `xml:"id,attr,omitempty"`
 	Lang          string        `xml:"lang,attr,omitempty"`
 	ContentType   string        `xml:"contentType,attr,omitempty"`
 	Par           string        `xml:"par,attr,omitempty"`
@@ -344,7 +340,7 @@ type Representation struct {
 }
 
 //SubRepresentation describes properties of one or several media content components
-//that are embedded in the Representation. TODO: check specs for validation.
+//that are embedded in the Representation.
 type SubRepresentation struct {
 	Level                  *int                   `xml:"level,attr,omitempty"`
 	DependencyLevel        CustomInt              `xml:"dependencyLevel,attr,omitempty"` //Whitespace separated list of int

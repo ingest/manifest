@@ -131,7 +131,7 @@ func (m *MPD) validateMPD(buf *manifest.BufWrapper) {
 
 func (p *Period) validate(buf *manifest.BufWrapper, mpdType string) {
 	//validate XlinkActuate
-	xlinkActuateError(buf, "Period", p.XlinkActuate)
+	validateXlinkActuate(buf, "Period", p.XlinkActuate)
 
 	if strings.EqualFold(mpdType, "dynamic") && p.ID == "" {
 		buf.WriteString("Period must have ID when Type = 'dynamic'.\n")
@@ -161,10 +161,12 @@ func (p *Period) validate(buf *manifest.BufWrapper, mpdType string) {
 }
 
 func (s *SegmentList) validate(buf *manifest.BufWrapper) {
-	xlinkActuateError(buf, "SegmentList", s.XlinkActuate)
+	validateXlinkActuate(buf, "SegmentList", s.XlinkActuate)
 }
 
 func (a *AdaptationSet) validate(buf *manifest.BufWrapper) {
+	validateScanType(buf, "AdaptationSet", a.ScanType)
+
 	if a.Accessibility != nil {
 		for _, acess := range a.Accessibility {
 			acess.validate(buf, "Accessibility")
@@ -260,10 +262,27 @@ func (r *Representation) validate(buf *manifest.BufWrapper) {
 		}
 	}
 
+	validateScanType(buf, "Representation", r.ScanType)
+
 	r.SegmentBase.validate(buf)
+
+	if r.SubRepresentation != nil {
+		for _, sr := range r.SubRepresentation {
+			sr.validate(buf)
+		}
+	}
 	//check if only one out of SegmentBase, SegmentList and SegmentTemplate is present
 	if !validateSegmentPresence(r.SegmentBase, r.SegmentTemplate, r.SegmentList) {
 		buf.WriteString("At most one of the three, SegmentBase, SegmentTemplate and SegmentList shall be present in Representation element.\n")
+	}
+}
+
+func (s *SubRepresentation) validate(buf *manifest.BufWrapper) {
+	if s != nil {
+		if s.Level != nil && s.Bandwidth == 0 {
+			buf.WriteString("SubRepresentation field Bandwidth is required when Level is present.\n")
+		}
+		validateScanType(buf, "SubRepresentation", s.ScanType)
 	}
 }
 
@@ -297,9 +316,16 @@ func (d *Descriptor) validate(buf *manifest.BufWrapper, element string) {
 	}
 }
 
-func xlinkActuateError(buf *manifest.BufWrapper, element string, xlinkActuate string) {
+func validateXlinkActuate(buf *manifest.BufWrapper, element string, xlinkActuate string) {
 	if xlinkActuate != "" && xlinkActuate != "onLoad" && xlinkActuate != "onRequest" {
 		buf.WriteString(fmt.Sprintf("%s field XlinkActuate accepts values 'onRequest' and 'onLoad'.\n", element))
+	}
+}
+
+func validateScanType(buf *manifest.BufWrapper, element string, scanType string) {
+	if scanType != "" && scanType != "progressive" && scanType != "interlaced" && scanType != "unknown" {
+		buf.WriteString(fmt.Sprintf("%s field scanType accepts values 'progressive', 'interlaced' and 'unknown'.\n",
+			element))
 	}
 }
 
