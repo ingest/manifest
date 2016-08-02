@@ -23,7 +23,11 @@
 //    if err!=nil{
 //    //handle error
 //    }
-//    if err := ioutil.WriteFile("path/to/file", p.Bytes(), 0666); err != nil {
+//
+//    buf := new(bytes.Buffer)
+//    buf.ReadFrom(reader)
+//
+//    if err := ioutil.WriteFile("path/to/file", buf.Bytes(), 0666); err != nil {
 //    //handle error
 //    }
 //  }
@@ -38,6 +42,8 @@
 //    if err != nil {
 //      //handle error
 //    }
+//    defer f.Close()
+//
 //    playlist := &hls.MasterPlaylist{}
 //    if err = playlist.Parse(bufio.NewReader(f)); err!=io.EOF{
 //      //handle error
