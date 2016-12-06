@@ -126,7 +126,7 @@ type SegmentBase struct {
 	RepresentationIndex *URLType        `xml:"RepresentationIndex,omitempty"`
 }
 
-//SegmentList conatins a list of SegmentURL elements.
+//SegmentList contains a list of SegmentURL elements.
 type SegmentList struct {
 	XlinkHref           string           `xml:"http://www.w3.org/1999/xlink href,attr,omitempty"`
 	XlinkActuate        string           `xml:"http://www.w3.org/1999/xlink actuate,attr,omitempty"`
