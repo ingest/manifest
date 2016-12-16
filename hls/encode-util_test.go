@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"stash.redspace.com/ing/manifest"
+	"github.com/ingest/manifest"
 )
 
 func TestWriteXMedia(t *testing.T) {

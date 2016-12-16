@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"stash.redspace.com/ing/manifest"
+	"github.com/ingest/manifest"
 )
 
 //NewMediaPlaylist returns an instance of a MediaPlaylist with a set version

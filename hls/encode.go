@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"stash.redspace.com/ing/manifest"
+	"github.com/ingest/manifest"
 )
 
 //Encode writes a Master Playlist file

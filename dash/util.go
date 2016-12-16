@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"stash.redspace.com/ing/manifest"
+	"github.com/ingest/manifest"
 )
 
 //NewMPD initiates a MPD struct with the minimum required attributes

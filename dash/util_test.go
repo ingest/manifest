@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"stash.redspace.com/ing/manifest"
+	"github.com/ingest/manifest"
 )
 
 func TestNoPeriodError(t *testing.T) {

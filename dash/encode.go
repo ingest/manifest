@@ -5,7 +5,7 @@ import (
 	"encoding/xml"
 	"io"
 
-	"stash.redspace.com/ing/manifest"
+	"github.com/ingest/manifest"
 )
 
 //Encode marshals an MPD structure into an MPD XML structure.

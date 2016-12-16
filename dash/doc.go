@@ -9,7 +9,7 @@
 // 	  "os"
 // 	  "time"
 //
-// 	  "stash.redspace.com/ing/manifest/dash"
+// 	  "github.com/ingest/manifest/dash"
 //  )
 //
 //  func main() {

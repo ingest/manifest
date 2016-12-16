@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"stash.redspace.com/ing/manifest"
+	"github.com/ingest/manifest"
 )
 
 //Parse reads a Master Playlist file and converts it to a MasterPlaylist object

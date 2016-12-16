@@ -6,7 +6,7 @@
 //Example usage:
 //
 //Encoding Manifest
-//  import "stash.redspace.com/ing/m3u8/hls"
+//  import "github.com/ingest/manifest/hls"
 //
 //  func main(){
 //    //Will start a MediaPlaylist object for hls version 7
@@ -15,8 +15,8 @@
 //    p.EndList = true
 //    segment := &hls.Segment{
 //      URI:       "segmenturi.ts",
-//      Inf:       &Inf{Duration: 9.052},
-//      Byterange: &Byterange{Length: 400},
+//      Inf:       &hls.Inf{Duration: 9.052},
+//      Byterange: &hls.Byterange{Length: 400},
 //    }
 //    p.Segments = append(p.Segments, segment)
 //    reader, err := p.Encode()
@@ -35,7 +35,7 @@
 //
 //
 //Decoding Manifest
-//  import "stash.redspace.com/ing/m3u8/hls"
+//  import "github.com/ingest/manifest/hls"
 //
 //  func main(){
 //    f, err := os.Open("path/to/file.m3u8")
