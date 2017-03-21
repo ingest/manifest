@@ -49,10 +49,7 @@ func writeIndependentSegment(isIndSeg bool, buf *manifest.BufWrapper) {
 //writeStartPoint sets the #EXT-X-START tag on Media and Master Playlist file
 func writeStartPoint(sp *StartPoint, buf *manifest.BufWrapper) {
 	if sp != nil {
-		if !buf.WriteValidString(sp.TimeOffset, fmt.Sprintf("#EXT-X-START:TIME-OFFSET=%s", strconv.FormatFloat(sp.TimeOffset, 'f', 3, 32))) {
-			buf.Err = attributeNotSetError("EXT-X-START", "TIME-OFFSET")
-			return
-		}
+		buf.WriteString(fmt.Sprintf("#EXT-X-START:TIME-OFFSET=%s", strconv.FormatFloat(sp.TimeOffset, 'f', 3, 32)))
 		buf.WriteValidString(sp.Precise, ",PRECISE=YES")
 		buf.WriteRune('\n')
 	}
@@ -234,10 +231,11 @@ func (s *Segment) writeSegmentTags(buf *manifest.BufWrapper) {
 			return
 		}
 
-		if s.Inf == nil || !buf.WriteValidString(s.Inf.Duration, fmt.Sprintf("#EXTINF:%s,%s\n", strconv.FormatFloat(s.Inf.Duration, 'f', 3, 32), s.Inf.Title)) {
+		if s.Inf == nil {
 			buf.Err = attributeNotSetError("EXTINF", "DURATION")
 			return
 		}
+		buf.WriteString(fmt.Sprintf("#EXTINF:%s,%s\n", strconv.FormatFloat(s.Inf.Duration, 'f', 3, 32), s.Inf.Title))
 
 		if s.Byterange != nil {
 			buf.WriteString(fmt.Sprintf("#EXT-X-BYTERANGE:%s", strconv.FormatInt(s.Byterange.Length, 10)))
