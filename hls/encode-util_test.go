@@ -228,6 +228,25 @@ func TestGenerateMediaPlaylist(t *testing.T) {
 	if strings.Contains(b.String(), "#EXT-X-I-FRAMES-ONLY") {
 		t.Error("Expected buf to not contain #EXT-X-I-FRAMES-ONLY")
 	}
+
+	p.Segments[0].Inf.Duration = 0
+	p.StartPoint.TimeOffset = 0
+
+	buf, err = p.Encode()
+	if err != nil {
+		t.Fatalf("Expected err to be nil, but got %s", err.Error())
+	}
+
+	b = new(bytes.Buffer)
+	b.ReadFrom(buf)
+
+	if !strings.Contains(b.String(), "#EXT-X-START:TIME-OFFSET=0.000") {
+		t.Error("Expected buf to contain #EXT-X-START")
+	}
+
+	if !strings.Contains(b.String(), "#EXTINF:0.000,") {
+		t.Error("Expected buf to contain #EXT-X-START")
+	}
 }
 
 func TestDateRange(t *testing.T) {
