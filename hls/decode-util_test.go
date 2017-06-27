@@ -2,12 +2,40 @@ package hls
 
 import (
 	"bufio"
-	"io"
 	"os"
 	"reflect"
 	"testing"
 	"time"
 )
+
+func TestV3Compat(t *testing.T) {
+	tests := []struct {
+		expectErr bool
+		file      string
+	}{
+		{
+			expectErr: true,
+			file:      "fixture-v3-fail.m3u8",
+		},
+		{
+			expectErr: false,
+			file:      "fixture-v3.m3u8",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.file, func(t *testing.T) {
+			f, err := os.Open("./testdata/" + tt.file)
+			if err != nil {
+				t.Fatal(err)
+			}
+			p := NewMediaPlaylist(0)
+			if err := p.Parse(f); (err != nil) != tt.expectErr {
+				t.Error(err)
+			}
+		})
+	}
+}
 
 func TestReadMasterPlaylistFile(t *testing.T) {
 	f, err := os.Open("./testdata/masterp.m3u8")
@@ -16,9 +44,10 @@ func TestReadMasterPlaylistFile(t *testing.T) {
 	}
 	p := &MasterPlaylist{}
 	err = p.Parse(bufio.NewReader(f))
-	if err != io.EOF {
-		t.Fatalf("Expected err to be EOF, but got %s", err)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
 	}
+
 	if len(p.SessionData) != 2 {
 		t.Errorf("Expected SessionData len 2, but got %d", len(p.SessionData))
 	}
@@ -83,8 +112,10 @@ func TestReadMediaPlaylist(t *testing.T) {
 	duration := float64(200)
 	pt, _ := time.Parse(time.RFC3339Nano, "2016-06-22T15:33:52.199039986Z")
 	seg := &Segment{
-		URI:       "segment.com",
-		Inf:       &Inf{Duration: 9.052},
+		URI: "segment.com",
+		Inf: &Inf{
+			Duration: 9.052,
+		},
 		Byterange: &Byterange{Length: 6000, Offset: &offset},
 		Keys:      []*Key{&Key{Method: "sample-aes", URI: "keyuri"}, &Key{Method: "sample-aes", URI: "secondkeyuri"}},
 		Map:       &Map{URI: "mapuri"},
@@ -96,8 +127,11 @@ func TestReadMediaPlaylist(t *testing.T) {
 	}
 
 	seg2 := &Segment{
-		URI:       "segment2.com",
-		Inf:       &Inf{Duration: 8.052, Title: "seg title"},
+		URI: "segment2.com",
+		Inf: &Inf{
+			Duration: 8.052,
+			Title:    "seg title",
+		},
 		Byterange: &Byterange{Length: 4000},
 		Keys:      []*Key{&Key{Method: "sample-aes", URI: "keyuri"}},
 		Map:       &Map{URI: "map2"},
@@ -105,8 +139,10 @@ func TestReadMediaPlaylist(t *testing.T) {
 	}
 
 	seg3 := &Segment{
-		URI:             "segment3.com",
-		Inf:             &Inf{Duration: 9.500},
+		URI: "segment3.com",
+		Inf: &Inf{
+			Duration: 9.500,
+		},
 		ProgramDateTime: time.Now(),
 		Discontinuity:   true,
 	}
@@ -121,10 +157,14 @@ func TestReadMediaPlaylist(t *testing.T) {
 
 	buf, err := p.Encode()
 
-	newP := NewMediaPlaylist(7)
+	newP := NewMediaPlaylist(0)
 	err = newP.Parse(buf)
-	if err != io.EOF {
-		t.Fatalf("Expected err to be EOF, but got %s", err.Error())
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	if newP.Version != 7 {
+		t.Errorf("expected version to be 7, got %d", newP.Version)
 	}
 
 	if newP.TargetDuration != p.TargetDuration {

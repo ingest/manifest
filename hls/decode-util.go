@@ -113,12 +113,17 @@ func decodeSessionData(line string) *SessionData {
 	return sd
 }
 
-func decodeInf(line string) (*Inf, error) {
+func decodeInf(line string, version int) (*Inf, error) {
 	var err error
 	i := &Inf{}
 	index := strings.Index(line, ",")
 	if i.Duration, err = strconv.ParseFloat(line[0:index], 64); err != nil {
 		return nil, err
+	}
+	if version < 3 {
+		if i.Duration != float64(int64(i.Duration)) {
+			return nil, fmt.Errorf("version compat: extinf (%f) must be integer for version %d", i.Duration, version)
+		}
 	}
 	i.Title = line[index+1 : len(line)]
 	return i, err

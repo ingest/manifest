@@ -11,27 +11,35 @@ import (
 //Parse reads a Master Playlist file and converts it to a MasterPlaylist object
 func (p *MasterPlaylist) Parse(reader io.Reader) error {
 	buf := manifest.NewBufWrapper()
-	buf.ReadFrom(reader)
-	if buf.Err != nil {
-		return buf.Err
+
+	// Populate buffer into memory, we could change this to a tokenizer with a line-by-line scanner?
+	if _, err := buf.ReadFrom(reader); err != nil {
+		return err
 	}
-	var eof bool
-	var streamInfLastTag bool
-	var line string
+
+	// Parsed Data
 	var renditions []*Rendition
-	key := &Key{}
 	variant := &Variant{}
+
+	// Parsing temporary state variables
+	var eof bool
+	// Was #EXTINF the last thing we checked? If so, we are looking for a URI line next
+	var streamInfLastTag bool
+	// Raw line
+	var line string
+	key := &Key{}
 	r := &Rendition{}
 
-	//until EOF, read every line and decode into an object
+	// Runs until io.EOF, reads line-by-line from buffer and decode into an object
 	for !eof {
 		line = buf.ReadString('\n')
+		if buf.Err == io.EOF {
+			buf.Err = nil
+			eof = true
+		}
+
 		if buf.Err != nil {
-			if buf.Err == io.EOF {
-				eof = true
-			} else {
-				break
-			}
+			return buf.Err
 		}
 
 		line = strings.TrimSpace(line)
@@ -105,10 +113,12 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 //Parse reads a Media Playlist file and convert it to MediaPlaylist object
 func (p *MediaPlaylist) Parse(reader io.Reader) error {
 	buf := manifest.NewBufWrapper()
-	buf.ReadFrom(reader)
-	if buf.Err != nil {
-		return buf.Err
+
+	// Populate buffer into memory, we could change this to a tokenizer with a line-by-line scanner?
+	if _, err := buf.ReadFrom(reader); err != nil {
+		return err
 	}
+
 	var eof bool
 	var line string
 	//count indicates the segment sequence number
@@ -119,12 +129,13 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 	//Until EOF, read every line and decode into an object
 	for !eof {
 		line = buf.ReadString('\n')
+		if buf.Err == io.EOF {
+			buf.Err = nil
+			eof = true
+		}
+
 		if buf.Err != nil {
-			if buf.Err == io.EOF {
-				eof = true
-			} else {
-				break
-			}
+			return buf.Err
 		}
 
 		line = strings.TrimSpace(line)
@@ -177,7 +188,7 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 		case line[0:index] == "#EXT-X-BYTERANGE":
 			segment.Byterange, buf.Err = decodeByterange(line[index+1 : size])
 		case line[0:index] == "#EXTINF":
-			segment.Inf, buf.Err = decodeInf(line[index+1 : size])
+			segment.Inf, buf.Err = decodeInf(line[index+1:size], p.Version)
 		case !strings.HasPrefix(line, "#"):
 			segment.URI = line
 			segment.ID = count
