@@ -80,16 +80,18 @@ func (b *BufWrapper) Write(p []byte) {
 	_, b.Err = b.Buf.Write(p)
 }
 
-//ReadFrom wraps buffer.ReadFrom
-func (b *BufWrapper) ReadFrom(r io.Reader) {
+// ReadFrom wraps buffer.ReadFrom
+func (b *BufWrapper) ReadFrom(r io.Reader) (int64, error) {
 	if b.Err != nil {
-		return
+		return 0, b.Err
 	}
 
-	_, b.Err = b.Buf.ReadFrom(r)
+	var count int64
+	count, b.Err = b.Buf.ReadFrom(r)
+	return count, b.Err
 }
 
-//ReadString wraps buffer.ReadString
+// ReadString wraps buffer.ReadString
 func (b *BufWrapper) ReadString(delim byte) (line string) {
 	if b.Err != nil {
 		return

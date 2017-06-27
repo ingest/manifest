@@ -205,7 +205,7 @@ func (p *MediaPlaylist) writeIFramesOnly(buf *manifest.BufWrapper) {
 	}
 }
 
-func (s *Segment) writeSegmentTags(buf *manifest.BufWrapper) {
+func (s *Segment) writeSegmentTags(buf *manifest.BufWrapper, version int) {
 	if s != nil {
 		if s.Keys != nil {
 			for _, key := range s.Keys {
@@ -235,7 +235,18 @@ func (s *Segment) writeSegmentTags(buf *manifest.BufWrapper) {
 			buf.Err = attributeNotSetError("EXTINF", "DURATION")
 			return
 		}
-		buf.WriteString(fmt.Sprintf("#EXTINF:%s,%s\n", strconv.FormatFloat(s.Inf.Duration, 'f', 3, 32), s.Inf.Title))
+
+		if version < 3 {
+			var duration int
+			if s.Inf.Duration < 0.5 {
+				duration = 0
+			}
+			// s.Inf.Duration is always > 0, so no need to use math.Abs or math.Copysign on the + 0.5
+			duration = int(s.Inf.Duration + 0.5)
+			buf.WriteString(fmt.Sprintf("#EXTINF:%d,%s\n", duration, s.Inf.Title))
+		} else {
+			buf.WriteString(fmt.Sprintf("#EXTINF:%s,%s\n", strconv.FormatFloat(s.Inf.Duration, 'f', 3, 32), s.Inf.Title))
+		}
 
 		if s.Byterange != nil {
 			buf.WriteString(fmt.Sprintf("#EXT-X-BYTERANGE:%s", strconv.FormatInt(s.Byterange.Length, 10)))
@@ -394,6 +405,12 @@ func (p *MediaPlaylist) checkCompatibility(s *Segment) error {
 
 		if s.Byterange != nil && p.Version < 4 {
 			return backwardsCompatibilityError(p.Version, "#EXT-X-BYTERANGE")
+		}
+
+		if s.Inf != nil && p.Version < 3 {
+			if s.Inf.Duration != float64(int64(s.Inf.Duration)) {
+				return backwardsCompatibilityError(p.Version, "#EXTINF")
+			}
 		}
 	}
 	return nil

@@ -112,7 +112,7 @@ func (p *MediaPlaylist) Encode() (io.Reader, error) {
 			if err := p.checkCompatibility(segment); err != nil {
 				return nil, err
 			}
-			segment.writeSegmentTags(buf)
+			segment.writeSegmentTags(buf, p.Version)
 			if buf.Err != nil {
 				return nil, buf.Err
 			}
