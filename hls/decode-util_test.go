@@ -2,8 +2,8 @@ package hls
 
 import (
 	"bufio"
-	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
@@ -79,7 +79,7 @@ func TestProtocolCompat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.file, func(t *testing.T) {
-			f, err := os.Open(fmt.Sprintf("./testdata/%s/%s", tt.mediaType, tt.file))
+			f, err := os.Open(filepath.Join("./testdata", tt.mediaType, tt.file))
 			if err != nil {
 				t.Fatal(err)
 			}
