@@ -391,8 +391,22 @@ func (p *MediaPlaylist) writeEndList(buf *manifest.BufWrapper) {
 //checkCompatibility checks backwards compatibility issues according to the Media Playlist version
 func (p *MediaPlaylist) checkCompatibility(s *Segment) error {
 	if s != nil {
+		if s.Inf != nil && p.Version < 3 {
+			if s.Inf.Duration != float64(int64(s.Inf.Duration)) {
+				return backwardsCompatibilityError(p.Version, "#EXTINF")
+			}
+		}
+
+		if s.Byterange != nil && p.Version < 4 {
+			return backwardsCompatibilityError(p.Version, "#EXT-X-BYTERANGE")
+		}
+
 		for _, key := range s.Keys {
-			if (strings.ToUpper(key.Method) == sample || key.Keyformat != "" || key.Keyformatversions != "") && p.Version < 5 {
+			if key.IV != "" && p.Version < 2 {
+				return backwardsCompatibilityError(p.Version, "#EXT-X-KEY")
+			}
+
+			if (key.Keyformat != "" || key.Keyformatversions != "") && p.Version < 5 {
 				return backwardsCompatibilityError(p.Version, "#EXT-X-KEY")
 			}
 		}
@@ -402,17 +416,29 @@ func (p *MediaPlaylist) checkCompatibility(s *Segment) error {
 				return backwardsCompatibilityError(p.Version, "#EXT-X-MAP")
 			}
 		}
-
-		if s.Byterange != nil && p.Version < 4 {
-			return backwardsCompatibilityError(p.Version, "#EXT-X-BYTERANGE")
+	} else {
+		if p.IFramesOnly && p.Version < 4 {
+			return backwardsCompatibilityError(p.Version, "#EXT-X-I-FRAMES-ONLY")
 		}
+	}
 
-		if s.Inf != nil && p.Version < 3 {
-			if s.Inf.Duration != float64(int64(s.Inf.Duration)) {
-				return backwardsCompatibilityError(p.Version, "#EXTINF")
+	return nil
+}
+
+func (p *MasterPlaylist) checkCompatibility() error {
+	switch {
+	case p.Version < 7:
+		for _, variant := range p.Variants {
+			for _, rendition := range variant.Renditions {
+				if rendition.Type == cc {
+					if strings.HasPrefix(rendition.InstreamID, "SERVICE") {
+						return backwardsCompatibilityError(p.Version, "#EXT-X-MEDIA")
+					}
+				}
 			}
 		}
 	}
+
 	return nil
 }
 

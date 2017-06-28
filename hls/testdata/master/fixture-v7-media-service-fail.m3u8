@@ -1,0 +1,7 @@
+#EXTM3U
+#EXT-X-VERSION:1
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="bipbop_audio",NAME="BipBop Audio 1",LANGUAGE="eng",DEFAULT=YES
+#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="English",LANGUAGE="en",DEFAULT=YES,CHARACTERISTICS="public.accessibility.transcribes-spoken-dialog, public.accessibility.describes-music-and-sound",URI="subtitles/eng/prog_index.m3u8"
+#EXT-X-MEDIA:TYPE=CLOSED-CAPTIONS,GROUP-ID="s5",LANGUAGE="en",NAME="English",AUTOSELECT=YES,DEFAULT=YES,INSTREAM-ID="SERVICE5"
+#EXT-X-STREAM-INF:BANDWIDTH=263851,CODECS="mp4a.40.2, avc1.4d400d",RESOLUTION=416x234,AUDIO="bipbop_audio",SUBTITLES="subs",CLOSED-CAPTIONS="s5"
+gear1/prog_index.m3u8

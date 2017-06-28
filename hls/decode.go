@@ -107,7 +107,16 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 
 	}
 
-	return buf.Err
+	if buf.Err != nil {
+		return buf.Err
+	}
+
+	// Check master playlist compatibility
+	if err := p.checkCompatibility(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //Parse reads a Media Playlist file and convert it to MediaPlaylist object
@@ -124,6 +133,7 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 	//count indicates the segment sequence number
 	count := 0
 	key := &Key{}
+	var xMap *Map
 	segment := &Segment{}
 
 	//Until EOF, read every line and decode into an object
@@ -180,7 +190,8 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 			key = decodeKey(line[index+1:size], false)
 			segment.Keys = append(segment.Keys, key)
 		case line[0:index] == "#EXT-X-MAP":
-			segment.Map, buf.Err = decodeMap(line[index+1 : size])
+			xMap, buf.Err = decodeMap(line[index+1 : size])
+			segment.Map = xMap
 		case line[0:index] == "#EXT-X-PROGRAM-DATE-TIME":
 			segment.ProgramDateTime, buf.Err = decodeDateTime(line[index+1 : size])
 		case line[0:index] == "#EXT-X-DATERANGE":
@@ -188,15 +199,39 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 		case line[0:index] == "#EXT-X-BYTERANGE":
 			segment.Byterange, buf.Err = decodeByterange(line[index+1 : size])
 		case line[0:index] == "#EXTINF":
-			segment.Inf, buf.Err = decodeInf(line[index+1:size], p.Version)
+			segment.Inf, buf.Err = decodeInf(line[index+1 : size])
 		case !strings.HasPrefix(line, "#"):
 			segment.URI = line
 			segment.ID = count
+			// a previous EXT-X-KEY applies to this segment
+			if len(segment.Keys) == 0 && key.URI != "" {
+				segment.Keys = append(segment.Keys, key)
+			}
+			// a previous EXT-X-MAP applies to this segment
+			if segment.Map == nil && xMap != nil {
+				segment.Map = xMap
+			}
+
 			p.Segments = append(p.Segments, segment)
 			segment = &Segment{}
 			count++
 		}
 	}
 
-	return buf.Err
+	if buf.Err != nil {
+		return buf.Err
+	}
+
+	// Check media playlist compatibility
+	if err := p.checkCompatibility(nil); err != nil {
+		return err
+	}
+
+	for _, segment := range p.Segments {
+		if err := p.checkCompatibility(segment); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

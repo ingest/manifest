@@ -2,37 +2,101 @@ package hls
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
 	"time"
 )
 
-func TestV3Compat(t *testing.T) {
+func TestProtocolCompat(t *testing.T) {
 	tests := []struct {
 		expectErr bool
+		mediaType string
 		file      string
 	}{
 		{
 			expectErr: true,
+			mediaType: "media",
 			file:      "fixture-v3-fail.m3u8",
 		},
 		{
 			expectErr: false,
+			mediaType: "media",
 			file:      "fixture-v3.m3u8",
+		},
+		{
+			expectErr: true,
+			mediaType: "media",
+			file:      "fixture-v4-byterange-fail.m3u8",
+		},
+		{
+			expectErr: true,
+			mediaType: "media",
+			file:      "fixture-v4-iframes-fail.m3u8",
+		},
+		{
+			expectErr: false,
+			mediaType: "media",
+			file:      "fixture-v4.m3u8",
+		},
+		{
+			expectErr: true,
+			mediaType: "media",
+			file:      "fixture-v5-keyformat-fail.m3u8",
+		},
+		{
+			expectErr: true,
+			mediaType: "media",
+			file:      "fixture-v5-map-fail.m3u8",
+		},
+		{
+			expectErr: false,
+			mediaType: "media",
+			file:      "fixture-v5.m3u8",
+		},
+		{
+			expectErr: true,
+			mediaType: "media",
+			file:      "fixture-v6-map-no-iframes-fail.m3u8",
+		},
+		{
+			expectErr: false,
+			mediaType: "media",
+			file:      "fixture-v6.m3u8",
+		},
+		{
+			expectErr: true,
+			mediaType: "master",
+			file:      "fixture-v7-media-service-fail.m3u8",
+		},
+		{
+			expectErr: false,
+			mediaType: "master",
+			file:      "fixture-v7.m3u8",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.file, func(t *testing.T) {
-			f, err := os.Open("./testdata/" + tt.file)
+			f, err := os.Open(fmt.Sprintf("./testdata/%s/%s", tt.mediaType, tt.file))
 			if err != nil {
 				t.Fatal(err)
 			}
-			p := NewMediaPlaylist(0)
-			if err := p.Parse(f); (err != nil) != tt.expectErr {
-				t.Error(err)
+
+			switch tt.mediaType {
+			case "media":
+				p := NewMediaPlaylist(0)
+				if err := p.Parse(f); (err != nil) != tt.expectErr {
+					t.Errorf("expected (%t) err: %v", tt.expectErr, err)
+				}
+			case "master":
+				p := NewMasterPlaylist(0)
+				if err := p.Parse(f); (err != nil) != tt.expectErr {
+					t.Errorf("expected (%t) err: %v", tt.expectErr, err)
+				}
 			}
+
 		})
 	}
 }

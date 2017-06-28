@@ -1,0 +1,7 @@
+#EXTM3U
+#EXT-X-VERSION:5
+#EXT-X-KEY:METHOD="SAMPLE-AES",IV=0x29fd9eba3735966ddfca572e51e68ff2,URI="com.keyuri.example",KEYFORMAT="com.apple.streamingkeydelivery",KEYFORMATVERSIONS="1"
+#EXT-X-MAP:URI="mapuri.for.test",BYTERANGE=6000@200
+#EXTINF:9.052,
+#EXT-X-BYTERANGE:999624@376
+https://play-dev.ingest.io/v_6500k0.ts
