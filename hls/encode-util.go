@@ -215,6 +215,7 @@ func (s *Segment) writeSegmentTags(buf *manifest.BufWrapper, previousSegment *Se
 				for _, oldKey := range previousSegment.Keys {
 					if key == oldKey {
 						found = true
+						break
 					}
 				}
 			} else {
