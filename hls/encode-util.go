@@ -205,18 +205,35 @@ func (p *MediaPlaylist) writeIFramesOnly(buf *manifest.BufWrapper) {
 	}
 }
 
-func (s *Segment) writeSegmentTags(buf *manifest.BufWrapper, version int) {
+func (s *Segment) writeSegmentTags(buf *manifest.BufWrapper, previousSegment *Segment, version int) {
 	if s != nil {
-		if s.Keys != nil {
-			for _, key := range s.Keys {
-				key.writeKey(buf)
-				if buf.Err != nil {
-					return
+		for _, key := range s.Keys {
+
+			found := false
+			// If the previous segment we printed contains the same key, we shouldn't output it again
+			if previousSegment != nil {
+				for _, oldKey := range previousSegment.Keys {
+					if key == oldKey {
+						found = true
+					}
 				}
+			} else {
+				found = true
+			}
+
+			if !found {
+				key.writeKey(buf)
+			}
+
+			if buf.Err != nil {
+				return
 			}
 		}
 
-		s.Map.writeMap(buf)
+		if previousSegment == nil || previousSegment.Map == nil || (previousSegment.Map != s.Map) {
+			s.Map.writeMap(buf)
+		}
+
 		if buf.Err != nil {
 			return
 		}
