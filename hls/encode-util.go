@@ -218,8 +218,6 @@ func (s *Segment) writeSegmentTags(buf *manifest.BufWrapper, previousSegment *Se
 						break
 					}
 				}
-			} else {
-				found = true
 			}
 
 			if !found {
