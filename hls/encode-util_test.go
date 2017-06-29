@@ -308,11 +308,10 @@ func TestMap(t *testing.T) {
 func TestCompatibilityCheck(t *testing.T) {
 	p := NewMediaPlaylist(4)
 	s := &Segment{
-		Keys: []*Key{&Key{Method: "sample-aes", URI: "keyuri"}},
+		Keys: []*Key{&Key{Method: "sample-aes", URI: "keyuri", Keyformat: "com.apple.streamingkeydelivery", Keyformatversions: "1"}},
 	}
 
 	err := p.checkCompatibility(s)
-
 	if err.Error() != backwardsCompatibilityError(p.Version, "#EXT-X-KEY").Error() {
 		t.Errorf("Error should be %s, but got %s", backwardsCompatibilityError(p.Version, "#EXT-X-KEY"), err)
 	}

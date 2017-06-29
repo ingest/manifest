@@ -1,0 +1,6 @@
+#EXTM3U
+#EXT-X-VERSION:4
+#EXT-X-I-FRAMES-ONLY
+#EXTINF:9.052,
+#EXT-X-BYTERANGE:999624@376
+https://play-dev.ingest.io/v_6500k0.ts

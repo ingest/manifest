@@ -108,14 +108,16 @@ func (p *MediaPlaylist) Encode() (io.Reader, error) {
 	//write segment tags
 	if p.Segments != nil {
 		sort.Sort(p.Segments)
+		var prev *Segment
 		for _, segment := range p.Segments {
 			if err := p.checkCompatibility(segment); err != nil {
 				return nil, err
 			}
-			segment.writeSegmentTags(buf, p.Version)
+			segment.writeSegmentTags(buf, prev, p.Version)
 			if buf.Err != nil {
 				return nil, buf.Err
 			}
+			prev = segment
 		}
 	} else {
 		return nil, errors.New("MediaPlaylist must have at least one Segment")
