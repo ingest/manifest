@@ -1,14 +1,34 @@
 package hls
 
-//Segments implements golang/sort interface to sort a Segment slice by Segment ID
-type Segments []*Segment
+import (
+	"fmt"
+	"net/url"
+)
 
-func (s Segments) Len() int {
-	return len(s)
-}
-func (s Segments) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-func (s Segments) Less(i, j int) bool {
-	return s[i].ID < s[j].ID
+const (
+	sub     = "SUBTITLES"
+	aud     = "AUDIO"
+	vid     = "VIDEO"
+	cc      = "CLOSED-CAPTIONS"
+	aes     = "AES-128"
+	none    = "NONE"
+	sample  = "SAMPLE-AES"
+	boolYes = "YES"
+	boolNo  = "NO"
+)
+
+func resolveURLReference(base, sub string) (string, error) {
+	ref, err := url.Parse(sub)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse subresource uri: %v", err)
+	}
+	if ref.IsAbs() {
+		return ref.String(), nil
+	}
+
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return "", err
+	}
+	return baseURL.ResolveReference(ref).String(), nil
 }
