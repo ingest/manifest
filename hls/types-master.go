@@ -7,10 +7,11 @@ import (
 
 //MasterPlaylist represents a Master Playlist and its tags
 type MasterPlaylist struct {
-	URI                 string     // Location of the master playlist
-	M3U                 bool       // Represents tag #EXTM3U. Indicates if present. MUST be present.
-	Version             int        // Represents tag #EXT-X-VERSION. MUST be present.
-	Variants            []*Variant // Represents the index playlists
+	URI                 string       // Location of the master playlist
+	M3U                 bool         // Represents tag #EXTM3U. Indicates if present. MUST be present.
+	Version             int          // Represents tag #EXT-X-VERSION. MUST be present.
+	Variants            []*Variant   // Represents the #EXT-X-I-FRAME-STREAM-INF and #EXT-X-STREAM-INF playlists
+	Renditions          []*Rendition // Represents the #EXT-X-MEDIA tags
 	SessionData         []*SessionData
 	SessionKeys         []*Key
 	IndependentSegments bool // Represents tag #EXT-X-INDEPENDENT-SEGMENTS. Applies to every Media Segment of every Media Playlist referenced. V6 or higher.
@@ -73,7 +74,6 @@ func (r *Rendition) Request() (*http.Request, error) {
 // #EXT-X-I-FRAME-STREAM-INF identifies Media Playlist file containing the I-frames of a multimedia presentation.
 // It supports the same parameters as EXT-X-STREAM-INF except Audio, Subtitles and ClosedCaptions.
 type Variant struct {
-	Renditions     []*Rendition
 	IsIframe       bool    //Identifies if #EXT-X-STREAM-INF or #EXT-X-I-FRAME-STREAM-INF
 	URI            string  //If #EXT-X-STREAM-INF, URI line MUST follow the tag. If #EXT-X-I-FRAME-STREAM-INF, URI MUST appear as an attribute of the tag.
 	ProgramID      int64   //Removed on Version 6

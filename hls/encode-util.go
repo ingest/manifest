@@ -452,12 +452,10 @@ func (p *MediaPlaylist) checkCompatibility(s *Segment) error {
 func (p *MasterPlaylist) checkCompatibility() error {
 	switch {
 	case p.Version < 7:
-		for _, variant := range p.Variants {
-			for _, rendition := range variant.Renditions {
-				if rendition.Type == cc {
-					if strings.HasPrefix(rendition.InstreamID, "SERVICE") {
-						return backwardsCompatibilityError(p.Version, "#EXT-X-MEDIA")
-					}
+		for _, rendition := range p.Renditions {
+			if rendition.Type == cc {
+				if strings.HasPrefix(rendition.InstreamID, "SERVICE") {
+					return backwardsCompatibilityError(p.Version, "#EXT-X-MEDIA")
 				}
 			}
 		}

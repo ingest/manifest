@@ -120,8 +120,8 @@ func TestReadMasterPlaylistFile(t *testing.T) {
 		t.Errorf("Expected Variants len 14, but got %d", len(p.Variants))
 	}
 
-	if len(p.Variants[0].Renditions) != 5 {
-		t.Errorf("Expected Renditions len 5, but got %d", len(p.Variants[0].Renditions))
+	if len(p.Renditions) != 5 {
+		t.Errorf("Expected Renditions len 5, but got %d", len(p.Renditions))
 	}
 
 	k := &Key{IsSession: true,
