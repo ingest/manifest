@@ -8,6 +8,13 @@ import (
 	"github.com/ingest/manifest"
 )
 
+type masterPlaylistParseState struct {
+	eof              bool
+	streamInfLastTag bool
+	renditions       []*Rendition
+	variant          *Variant
+}
+
 //Parse reads a Master Playlist file and converts it to a MasterPlaylist object
 func (p *MasterPlaylist) Parse(reader io.Reader) error {
 	buf := manifest.NewBufWrapper()
@@ -17,29 +24,19 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 		return err
 	}
 
-	// Parsed Data
-	var renditions []*Rendition
-	variant := &Variant{
-		masterPlaylist: p,
+	s := masterPlaylistParseState{
+		variant: &Variant{masterPlaylist: p},
 	}
 
-	// Parsing temporary state variables
-	var eof bool
-	// Was #EXTINF the last thing we checked? If so, we are looking for a URI line next
-	var streamInfLastTag bool
 	// Raw line
 	var line string
-	key := &Key{}
-	r := &Rendition{
-		masterPlaylist: p,
-	}
 
 	// Runs until io.EOF, reads line-by-line from buffer and decode into an object
-	for !eof {
+	for !s.eof {
 		line = buf.ReadString('\n')
 		if buf.Err == io.EOF {
 			buf.Err = nil
-			eof = true
+			s.eof = true
 		}
 
 		if buf.Err != nil {
@@ -54,7 +51,7 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 		}
 
 		if line[0] == '#' {
-			streamInfLastTag = false
+			s.streamInfLastTag = false
 			index := stringsIndex(line, ":")
 			switch {
 			case line == "#EXTM3U":
@@ -70,7 +67,7 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 				p.IndependentSegments = true
 
 			case line[0:index] == "#EXT-X-SESSION-KEY":
-				key = decodeKey(line[index+1:size], true)
+				key := decodeKey(line[index+1:size], true)
 				p.SessionKeys = append(p.SessionKeys, key)
 
 			case line[0:index] == "#EXT-X-SESSION-DATA":
@@ -79,41 +76,36 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 				p.SessionData = append(p.SessionData, data)
 
 			case line[0:index] == "#EXT-X-MEDIA":
-				r = decodeRendition(line[index+1 : size])
+				r := decodeRendition(line[index+1 : size])
 				r.masterPlaylist = p
-				renditions = append(renditions, r)
+				s.renditions = append(s.renditions, r)
 
 			case line[0:index] == "#EXT-X-STREAM-INF":
-				variant, buf.Err = decodeVariant(line[index+1:size], false)
-				variant.masterPlaylist = p
-				streamInfLastTag = true
+				s.variant, buf.Err = decodeVariant(line[index+1:size], false)
+				s.variant.masterPlaylist = p
+				s.streamInfLastTag = true
 
 			//Case line is EXT-X-I-FRAME-STREAM-INF, it means it's the end of a variant
 			//append variant to MasterPlaylist and restart variables
 			case line[0:index] == "#EXT-X-I-FRAME-STREAM-INF":
-				if variant, buf.Err = decodeVariant(line[index+1:size], true); buf.Err == nil {
-					variant.Renditions = renditions
-					p.Variants = append(p.Variants, variant)
-					variant = &Variant{
-						masterPlaylist: p,
-					}
-					renditions = []*Rendition{}
-				}
+				s.variant, buf.Err = decodeVariant(line[index+1:size], true)
+				s.variant.Renditions = s.renditions
+				p.Variants = append(p.Variants, s.variant)
+				// Reset state
+				s.variant = &Variant{masterPlaylist: p}
+				s.renditions = []*Rendition{}
 			}
 			//Case line doesn't start with '#', check if last tag was EXT-X-STREAM-INF.
 			//Which means this line is variant URI
 			//Append variant to MasterPlaylist and restart variables
-		} else {
-			if streamInfLastTag {
-				variant.URI = line
-				variant.Renditions = renditions
-				p.Variants = append(p.Variants, variant)
-				variant = &Variant{
-					masterPlaylist: p,
-				}
-				renditions = []*Rendition{}
-				streamInfLastTag = false
-			}
+		} else if s.streamInfLastTag {
+			s.variant.URI = line
+			s.variant.Renditions = s.renditions
+			p.Variants = append(p.Variants, s.variant)
+			// Reset state
+			s.variant = &Variant{masterPlaylist: p}
+			s.renditions = []*Rendition{}
+			s.streamInfLastTag = false
 		}
 
 	}
@@ -130,6 +122,14 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 	return nil
 }
 
+// Holds the state while parsing a media playlist
+type mediaPlaylistParseState struct {
+	eof             bool
+	previousMap     *Map
+	previousKey     *Key
+	segmentSequence int
+}
+
 //Parse reads a Media Playlist file and convert it to MediaPlaylist object
 func (p *MediaPlaylist) Parse(reader io.Reader) error {
 	buf := manifest.NewBufWrapper()
@@ -139,26 +139,18 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 		return err
 	}
 
-	var eof bool
-	var line string
-	//count indicates the segment sequence number
-	count := 0
-	key := &Key{
-		mediaPlaylist: p,
-	}
-
-	var xMap *Map
-
+	s := mediaPlaylistParseState{}
 	segment := &Segment{
 		mediaPlaylist: p,
 	}
 
 	//Until EOF, read every line and decode into an object
-	for !eof {
+	var line string
+	for !s.eof {
 		line = buf.ReadString('\n')
 		if buf.Err == io.EOF {
 			buf.Err = nil
-			eof = true
+			s.eof = true
 		}
 
 		if buf.Err != nil {
@@ -182,7 +174,7 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 		case line[0:index] == "#EXT-X-MEDIA-SEQUENCE":
 			p.MediaSequence, buf.Err = strconv.Atoi(line[index+1 : size])
 			//case MediaSequence is present, first sequence number = MediaSequence
-			count = p.MediaSequence
+			s.segmentSequence = p.MediaSequence
 		case line[0:index] == "#EXT-X-DISCONTINUITY-SEQUENCE":
 			p.DiscontinuitySequence, buf.Err = strconv.Atoi(line[index+1 : size])
 		case line == "#EXT-X-I-FRAMES-ONLY":
@@ -201,16 +193,17 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 			p.EndList = true
 		case line[0:index] == "#EXT-X-START":
 			p.StartPoint, buf.Err = decodeStartPoint(line[index+1 : size])
-		//case below this point refers to segment tags, if line is uri, it reached the end of a segment.
-		//append segment to p.Segments and restart variable
+
+		// Cases below this point refers to tags that effect segments, when we reach a line with no leading #, we've reached the end of a segment definition.
 		case line[0:index] == "#EXT-X-KEY":
-			key = decodeKey(line[index+1:size], false)
+			key := decodeKey(line[index+1:size], false)
 			key.mediaPlaylist = p
+			s.previousKey = key // we store this key for future reference because every segment between EXT-X-KEYs should use this key for decryption
 			segment.Keys = append(segment.Keys, key)
 		case line[0:index] == "#EXT-X-MAP":
-			xMap, buf.Err = decodeMap(line[index+1 : size])
-			xMap.mediaPlaylist = p
-			segment.Map = xMap
+			s.previousMap, buf.Err = decodeMap(line[index+1 : size])
+			s.previousMap.mediaPlaylist = p
+			segment.Map = s.previousMap
 		case line[0:index] == "#EXT-X-PROGRAM-DATE-TIME":
 			segment.ProgramDateTime, buf.Err = decodeDateTime(line[index+1 : size])
 		case line[0:index] == "#EXT-X-DATERANGE":
@@ -221,23 +214,23 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 			segment.Inf, buf.Err = decodeInf(line[index+1 : size])
 		case !strings.HasPrefix(line, "#"):
 			segment.URI = line
-			segment.ID = count
+			segment.ID = s.segmentSequence
 
 			// a previous EXT-X-KEY applies to this segment
-			if len(segment.Keys) == 0 && key.URI != "" {
-				segment.Keys = append(segment.Keys, key)
+			if len(segment.Keys) == 0 && s.previousKey != nil && s.previousKey.URI != "" {
+				segment.Keys = append(segment.Keys, s.previousKey)
 			}
 
 			// a previous EXT-X-MAP applies to this segment
-			if segment.Map == nil && xMap != nil {
-				segment.Map = xMap
+			if segment.Map == nil && s.previousMap != nil {
+				segment.Map = s.previousMap
 			}
 
 			p.Segments = append(p.Segments, segment)
-			segment = &Segment{
-				mediaPlaylist: p,
-			}
-			count++
+
+			// Reset segment
+			segment = &Segment{mediaPlaylist: p}
+			s.segmentSequence++
 		}
 	}
 
