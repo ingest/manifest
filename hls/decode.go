@@ -11,7 +11,6 @@ import (
 type masterPlaylistParseState struct {
 	eof              bool
 	streamInfLastTag bool
-	renditions       []*Rendition
 	variant          *Variant
 }
 
@@ -78,7 +77,7 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 			case line[0:index] == "#EXT-X-MEDIA":
 				r := decodeRendition(line[index+1 : size])
 				r.masterPlaylist = p
-				s.renditions = append(s.renditions, r)
+				p.Renditions = append(p.Renditions, r)
 
 			case line[0:index] == "#EXT-X-STREAM-INF":
 				s.variant, buf.Err = decodeVariant(line[index+1:size], false)
@@ -88,23 +87,23 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 			//Case line is EXT-X-I-FRAME-STREAM-INF, it means it's the end of a variant
 			//append variant to MasterPlaylist and restart variables
 			case line[0:index] == "#EXT-X-I-FRAME-STREAM-INF":
-				s.variant, buf.Err = decodeVariant(line[index+1:size], true)
-				s.variant.Renditions = s.renditions
-				p.Variants = append(p.Variants, s.variant)
-				// Reset state
-				s.variant = &Variant{masterPlaylist: p}
-				s.renditions = []*Rendition{}
+				variant, err := decodeVariant(line[index+1:size], true)
+				if err != nil {
+					buf.Err = err
+					continue // shouldn't include a partially decoded iframe playlist
+				}
+				variant.masterPlaylist = p
+
+				p.Variants = append(p.Variants, variant)
 			}
 			//Case line doesn't start with '#', check if last tag was EXT-X-STREAM-INF.
 			//Which means this line is variant URI
 			//Append variant to MasterPlaylist and restart variables
 		} else if s.streamInfLastTag {
 			s.variant.URI = line
-			s.variant.Renditions = s.renditions
 			p.Variants = append(p.Variants, s.variant)
 			// Reset state
 			s.variant = &Variant{masterPlaylist: p}
-			s.renditions = []*Rendition{}
 			s.streamInfLastTag = false
 		}
 

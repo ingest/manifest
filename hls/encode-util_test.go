@@ -125,15 +125,6 @@ func TestGenerateMasterPlaylist(t *testing.T) {
 		Language: "English",
 		Default:  false,
 	}
-	variant := &Variant{
-		Renditions: []*Rendition{rend, rend2},
-		IsIframe:   false,
-		URI:        "http://test.com",
-		Bandwidth:  234000,
-		Resolution: "230x400",
-		Codecs:     "These codescs",
-	}
-
 	rend3 := &Rendition{
 		Type:     "VIDEO",
 		GroupID:  "Test",
@@ -141,15 +132,23 @@ func TestGenerateMasterPlaylist(t *testing.T) {
 		Language: "Portuguese",
 	}
 
-	variant2 := &Variant{
-		Renditions: []*Rendition{rend3},
+	variant := &Variant{
 		IsIframe:   false,
-		URI:        "thistest.com",
-		Bandwidth:  145000,
+		URI:        "http://test.com",
+		Bandwidth:  234000,
+		Resolution: "230x400",
+		Codecs:     "These codescs",
+	}
+
+	variant2 := &Variant{
+		IsIframe:  false,
+		URI:       "thistest.com",
+		Bandwidth: 145000,
 	}
 
 	p := NewMasterPlaylist(5)
 	p.Variants = append(p.Variants, variant, variant2)
+	p.Renditions = append(p.Renditions, rend, rend2, rend3)
 	p.SessionData = []*SessionData{&SessionData{DataID: "test", Value: "this is the session data"}}
 	p.SessionKeys = []*Key{&Key{IsSession: true, Method: "sample-aes", URI: "keyuri"}}
 	p.IndependentSegments = true

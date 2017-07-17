@@ -5,13 +5,16 @@ import (
 	"errors"
 	"io"
 	"sort"
-	"strings"
 
 	"github.com/ingest/manifest"
 )
 
 //Encode writes a Master Playlist file
 func (p *MasterPlaylist) Encode() (io.Reader, error) {
+	if err := p.checkCompatibility(); err != nil {
+		return nil, err
+	}
+
 	buf := manifest.NewBufWrapper()
 
 	//Write header tags
@@ -48,21 +51,19 @@ func (p *MasterPlaylist) Encode() (io.Reader, error) {
 		return nil, buf.Err
 	}
 
-	//For every Variant, write rendition and variant tags if enabled
+	// For every Rendition, write #EXT-X-MEDIA tags
+	if p.Renditions != nil {
+		for _, rendition := range p.Renditions {
+			rendition.writeXMedia(buf)
+			if buf.Err != nil {
+				return nil, buf.Err
+			}
+		}
+	}
+
+	//For every Variant, write #EXT-X-STREAM-INF and #EXT-X-I-FRAME-STREAM-INF tags
 	if p.Variants != nil {
 		for _, variant := range p.Variants {
-			if variant.Renditions != nil {
-				for _, rendition := range variant.Renditions {
-					//Check backwards compatibility issue before continuing
-					if strings.HasPrefix(strings.ToUpper(rendition.InstreamID), "SERVICE") && p.Version < 7 {
-						return nil, backwardsCompatibilityError(p.Version, "#EXT-X-MEDIA")
-					}
-					rendition.writeXMedia(buf)
-					if buf.Err != nil {
-						return nil, buf.Err
-					}
-				}
-			}
 			variant.writeStreamInf(p.Version, buf)
 			if buf.Err != nil {
 				return nil, buf.Err
