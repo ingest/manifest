@@ -63,6 +63,21 @@ type Byterange struct {
 	Offset *int64
 }
 
+// Equal determines if the two byterange objects are equal and contain the same values
+func (b *Byterange) Equal(other *Byterange) bool {
+	if b != nil && other != nil {
+		if b.Length != other.Length {
+			return false
+		}
+
+		if b.Offset != nil && other.Offset != nil {
+			return *b.Offset == *other.Offset
+		}
+	}
+
+	return b == other
+}
+
 // Key represents tags #EXT-X-KEY:<attribute=value> and #EXT-X-SESSION-KEY. Specifies how to decrypt an encrypted media segment.
 // #EXT-X-SESSION-KEY is exclusively a Master Playlist tag (HLS V7) and it SHOULD be used if multiple Variant Streams use the same encryption keys.
 // TODO(jstackhouse): Split SESSION-KEY into it's own type as it's got different validation properties, and is part of the master playlist, not media playlist.
@@ -97,6 +112,16 @@ type Map struct {
 	Byterange *Byterange //Optional. Indicates the byte range into the URI resource containing the Media Initialization Section.
 
 	mediaPlaylist *MediaPlaylist // MediaPlaylist is included to be used internally for resolving relative resource locations
+}
+
+// Equal determines if the two maps are equal, does not check private fields for equality so this does not guarantee that two maps will act identically.
+// Works on nil structures, if both m and other are nil, they are considered equal.
+func (m *Map) Equal(other *Map) bool {
+	if m != nil && other != nil {
+		return m.URI == other.URI && m.Byterange.Equal(other.Byterange)
+	}
+
+	return m == other
 }
 
 // Request creates a new http request ready to retrieve the segment
