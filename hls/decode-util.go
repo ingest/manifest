@@ -217,7 +217,7 @@ func decodeByterange(value string) (*Byterange, error) {
 func decodeKey(line string, isSession bool) *Key {
 	keyMap := splitParams(line)
 
-	key := &Key{IsSession: isSession}
+	key := Key{IsSession: isSession}
 	for k, v := range keyMap {
 		switch k {
 		case "METHOD":
@@ -232,7 +232,7 @@ func decodeKey(line string, isSession bool) *Key {
 			key.Keyformatversions = v
 		}
 	}
-	return key
+	return &key
 }
 
 func decodeStartPoint(line string) (*StartPoint, error) {
