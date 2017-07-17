@@ -10,12 +10,20 @@ import (
 	"github.com/ingest/manifest"
 )
 
-//NewMediaPlaylist returns an instance of a MediaPlaylist with a set version
+// NewMediaPlaylist returns an instance of a MediaPlaylist with a set version
 func NewMediaPlaylist(version int) *MediaPlaylist {
-	return &MediaPlaylist{Version: version}
+	return &MediaPlaylist{
+		Version: version,
+	}
 }
 
-//NewMasterPlaylist returns an instance of a MasterPlaylist with a set version
+// WithVariant supplies the data which was processed from the master playlist.
+func (p *MediaPlaylist) WithVariant(v *Variant) *MediaPlaylist {
+	p.Variant = v
+	return p
+}
+
+// NewMasterPlaylist returns an instance of a MasterPlaylist with a set version
 func NewMasterPlaylist(version int) *MasterPlaylist {
 	return &MasterPlaylist{Version: version}
 }

@@ -19,7 +19,9 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 
 	// Parsed Data
 	var renditions []*Rendition
-	variant := &Variant{}
+	variant := &Variant{
+		masterPlaylist: p,
+	}
 
 	// Parsing temporary state variables
 	var eof bool
@@ -28,7 +30,9 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 	// Raw line
 	var line string
 	key := &Key{}
-	r := &Rendition{}
+	r := &Rendition{
+		masterPlaylist: p,
+	}
 
 	// Runs until io.EOF, reads line-by-line from buffer and decode into an object
 	for !eof {
@@ -71,14 +75,17 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 
 			case line[0:index] == "#EXT-X-SESSION-DATA":
 				data := decodeSessionData(line[index+1 : size])
+				data.masterPlaylist = p
 				p.SessionData = append(p.SessionData, data)
 
 			case line[0:index] == "#EXT-X-MEDIA":
 				r = decodeRendition(line[index+1 : size])
+				r.masterPlaylist = p
 				renditions = append(renditions, r)
 
 			case line[0:index] == "#EXT-X-STREAM-INF":
 				variant, buf.Err = decodeVariant(line[index+1:size], false)
+				variant.masterPlaylist = p
 				streamInfLastTag = true
 
 			//Case line is EXT-X-I-FRAME-STREAM-INF, it means it's the end of a variant
@@ -87,7 +94,9 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 				if variant, buf.Err = decodeVariant(line[index+1:size], true); buf.Err == nil {
 					variant.Renditions = renditions
 					p.Variants = append(p.Variants, variant)
-					variant = &Variant{}
+					variant = &Variant{
+						masterPlaylist: p,
+					}
 					renditions = []*Rendition{}
 				}
 			}
@@ -99,7 +108,9 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 				variant.URI = line
 				variant.Renditions = renditions
 				p.Variants = append(p.Variants, variant)
-				variant = &Variant{}
+				variant = &Variant{
+					masterPlaylist: p,
+				}
 				renditions = []*Rendition{}
 				streamInfLastTag = false
 			}
@@ -132,9 +143,15 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 	var line string
 	//count indicates the segment sequence number
 	count := 0
-	key := &Key{}
+	key := &Key{
+		mediaPlaylist: p,
+	}
+
 	var xMap *Map
-	segment := &Segment{}
+
+	segment := &Segment{
+		mediaPlaylist: p,
+	}
 
 	//Until EOF, read every line and decode into an object
 	for !eof {
@@ -188,9 +205,11 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 		//append segment to p.Segments and restart variable
 		case line[0:index] == "#EXT-X-KEY":
 			key = decodeKey(line[index+1:size], false)
+			key.mediaPlaylist = p
 			segment.Keys = append(segment.Keys, key)
 		case line[0:index] == "#EXT-X-MAP":
 			xMap, buf.Err = decodeMap(line[index+1 : size])
+			xMap.mediaPlaylist = p
 			segment.Map = xMap
 		case line[0:index] == "#EXT-X-PROGRAM-DATE-TIME":
 			segment.ProgramDateTime, buf.Err = decodeDateTime(line[index+1 : size])
@@ -203,17 +222,21 @@ func (p *MediaPlaylist) Parse(reader io.Reader) error {
 		case !strings.HasPrefix(line, "#"):
 			segment.URI = line
 			segment.ID = count
+
 			// a previous EXT-X-KEY applies to this segment
 			if len(segment.Keys) == 0 && key.URI != "" {
 				segment.Keys = append(segment.Keys, key)
 			}
+
 			// a previous EXT-X-MAP applies to this segment
 			if segment.Map == nil && xMap != nil {
 				segment.Map = xMap
 			}
 
 			p.Segments = append(p.Segments, segment)
-			segment = &Segment{}
+			segment = &Segment{
+				mediaPlaylist: p,
+			}
 			count++
 		}
 	}

@@ -209,6 +209,7 @@ func TestReadMediaPlaylist(t *testing.T) {
 		},
 		ProgramDateTime: time.Now(),
 		Discontinuity:   true,
+		Map:             &Map{URI: "map2"},
 	}
 
 	p := NewMediaPlaylist(7)
@@ -218,7 +219,6 @@ func TestReadMediaPlaylist(t *testing.T) {
 	p.EndList = true
 	p.MediaSequence = 1
 	p.StartPoint = &StartPoint{TimeOffset: 10.543}
-
 	buf, err := p.Encode()
 
 	newP := NewMediaPlaylist(0)
@@ -250,8 +250,8 @@ func TestReadMediaPlaylist(t *testing.T) {
 		if s.URI != newP.Segments[i].URI {
 			t.Errorf("Expected URI to be %s, but got %s", s.URI, newP.Segments[i].URI)
 		}
-		if s.Map != nil && !reflect.DeepEqual(s.Map, newP.Segments[i].Map) {
-			t.Errorf("Expected %d Segment Map tp be %v, but got %v", i, s.Map, newP.Segments[i].Map)
+		if !s.Map.Equal(newP.Segments[i].Map) {
+			t.Errorf("Expected %d Segment Map to be %v, but got %v", i, s.Map, newP.Segments[i].Map)
 		}
 		// if s.DateRange != nil && !reflect.DeepEqual(s.DateRange, newP.Segments[i].DateRange) {
 		// 	t.Errorf("Expected %d Segment DateRange to be %v, but got %v", i, s.DateRange, newP.Segments[i].DateRange)
