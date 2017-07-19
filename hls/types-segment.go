@@ -89,12 +89,19 @@ type Key struct {
 	Keyformat         string //Optional. Specifies how the key is represented in the resource. V5 or higher
 	Keyformatversions string //Optional. Indicates which Keyformat versions this instance complies with. Default value is 1. V5 or higher
 
-	mediaPlaylist *MediaPlaylist // MediaPlaylist is included to be used internally for resolving relative resource locations
+	masterPlaylist *MasterPlaylist // MasterPlaylist is included to be used internally for resolving relative resource locations for Session keys
+	mediaPlaylist  *MediaPlaylist  // MediaPlaylist is included to be used internally for resolving relative resource locations
 }
 
 // Request creates a new http request ready to retrieve the segment
 func (k *Key) Request() (*http.Request, error) {
-	uri, err := resolveURLReference(k.mediaPlaylist.URI, k.URI)
+	var uri string
+	var err error
+	if k.IsSession {
+		uri, err = resolveURLReference(k.masterPlaylist.URI, k.URI)
+	} else {
+		uri, err = resolveURLReference(k.mediaPlaylist.URI, k.URI)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed building resource url: %v", err)
 	}
