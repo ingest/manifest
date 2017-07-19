@@ -113,6 +113,36 @@ func (k *Key) Request() (*http.Request, error) {
 	return req, nil
 }
 
+// Equal checks whether all public fields are equal in a Key with the exception of the IV field.
+func (k *Key) Equal(other *Key) bool {
+	if k != nil && other != nil {
+		if k.IsSession != other.IsSession {
+			return false
+		}
+
+		if k.Keyformat != other.Keyformat {
+			return false
+		}
+
+		if k.Keyformatversions != other.Keyformatversions {
+			return false
+		}
+
+		if k.Method != other.Method {
+			return false
+		}
+
+		if k.URI != other.URI {
+			return false
+		}
+
+		return true
+	}
+
+	// are they both nil
+	return k == other
+}
+
 //Map represents tag #EXT-X-MAP:<attribute=value>. Specifies how to get the Media Initialization Section
 type Map struct {
 	URI       string     //Required.
