@@ -67,6 +67,7 @@ func (p *MasterPlaylist) Parse(reader io.Reader) error {
 
 			case line[0:index] == "#EXT-X-SESSION-KEY":
 				key := decodeKey(line[index+1:size], true)
+				key.masterPlaylist = p
 				p.SessionKeys = append(p.SessionKeys, key)
 
 			case line[0:index] == "#EXT-X-SESSION-DATA":

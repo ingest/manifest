@@ -89,12 +89,19 @@ type Key struct {
 	Keyformat         string //Optional. Specifies how the key is represented in the resource. V5 or higher
 	Keyformatversions string //Optional. Indicates which Keyformat versions this instance complies with. Default value is 1. V5 or higher
 
-	mediaPlaylist *MediaPlaylist // MediaPlaylist is included to be used internally for resolving relative resource locations
+	masterPlaylist *MasterPlaylist // MasterPlaylist is included to be used internally for resolving relative resource locations for Session keys
+	mediaPlaylist  *MediaPlaylist  // MediaPlaylist is included to be used internally for resolving relative resource locations
 }
 
 // Request creates a new http request ready to retrieve the segment
 func (k *Key) Request() (*http.Request, error) {
-	uri, err := resolveURLReference(k.mediaPlaylist.URI, k.URI)
+	var uri string
+	var err error
+	if k.IsSession {
+		uri, err = resolveURLReference(k.masterPlaylist.URI, k.URI)
+	} else {
+		uri, err = resolveURLReference(k.mediaPlaylist.URI, k.URI)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed building resource url: %v", err)
 	}
@@ -104,6 +111,36 @@ func (k *Key) Request() (*http.Request, error) {
 		return req, fmt.Errorf("failed to construct request: %v", err)
 	}
 	return req, nil
+}
+
+// Equal checks whether all public fields are equal in a Key with the exception of the IV field.
+func (k *Key) Equal(other *Key) bool {
+	if k != nil && other != nil {
+		if k.IsSession != other.IsSession {
+			return false
+		}
+
+		if k.Keyformat != other.Keyformat {
+			return false
+		}
+
+		if k.Keyformatversions != other.Keyformatversions {
+			return false
+		}
+
+		if k.Method != other.Method {
+			return false
+		}
+
+		if k.URI != other.URI {
+			return false
+		}
+
+		return true
+	}
+
+	// are they both nil
+	return k == other
 }
 
 //Map represents tag #EXT-X-MAP:<attribute=value>. Specifies how to get the Media Initialization Section

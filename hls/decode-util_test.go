@@ -124,14 +124,17 @@ func TestReadMasterPlaylistFile(t *testing.T) {
 		t.Errorf("Expected Renditions len 5, but got %d", len(p.Renditions))
 	}
 
-	k := &Key{IsSession: true,
+	k := &Key{
+		IsSession:         true,
 		Method:            "SAMPLE-AES",
 		IV:                "0x29fd9eba3735966ddfca572e51e68ff2",
 		URI:               "com.keyuri.example",
 		Keyformat:         "com.apple.streamingkeydelivery",
-		Keyformatversions: "1"}
+		Keyformatversions: "1",
+	}
+
 	if p.SessionKeys != nil {
-		if !reflect.DeepEqual(k, p.SessionKeys[0]) {
+		if !k.Equal(p.SessionKeys[0]) {
 			t.Errorf("Expected SessionKeys to be %v, but got %v", k, p.SessionKeys[0])
 		}
 	}
