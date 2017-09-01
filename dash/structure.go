@@ -207,7 +207,7 @@ type AdaptationSet struct {
 	Lang                    string                 `xml:"lang,attr,omitempty"`
 	ContentType             string                 `xml:"contentType,attr,omitempty"`
 	Par                     string                 `xml:"par,attr,omitempty"` //Optional. Picture Aspect Ratio. TODO:check specs for validation (regex)
-	MinBandwidth            int                    `xml:"minBandwith,attr,omitempty"`
+	MinBandwidth            int                    `xml:"minBandwidth,attr,omitempty"`
 	MaxBandwidth            int                    `xml:"maxBandwidth,attr,omitempty"`
 	MinWidth                int                    `xml:"minWidth,attr,omitempty"`
 	MaxWidth                int                    `xml:"maxWidth,attr,omitempty"`
