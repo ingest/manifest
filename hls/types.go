@@ -19,7 +19,7 @@ const (
 	boolNo  = "NO"
 )
 
-// Source is an interface which presents an interface for sourcing the components of a HLS manifest
+// Source represents how you can fetch the components of a HLS manifest from different locations
 type Source interface {
 	Master(ctx context.Context, uri string) (*MasterPlaylist, error)
 	Media(ctx context.Context, variant *Variant) (*MediaPlaylist, error)
