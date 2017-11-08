@@ -23,7 +23,7 @@ type Segment struct {
 
 // Request creates a new http request ready to send to retrieve the segment
 func (s *Segment) Request() (*http.Request, error) {
-	uri, err := resolveURLReference(s.mediaPlaylist.URI, s.URI)
+	uri, err := s.AbsoluteURL()
 	if err != nil {
 		return nil, fmt.Errorf("failed building resource url: %v", err)
 	}
@@ -33,6 +33,11 @@ func (s *Segment) Request() (*http.Request, error) {
 		return req, fmt.Errorf("failed to construct request: %v", err)
 	}
 	return req, nil
+}
+
+// AbsoluteURL will resolve the segment URI to a absolute path, given it is a relative URL.
+func (s *Segment) AbsoluteURL() (string, error) {
+	return resolveURLReference(s.mediaPlaylist.URI, s.URI)
 }
 
 // Segments implements golang/sort interface to sort a Segment slice by Segment ID
@@ -95,13 +100,7 @@ type Key struct {
 
 // Request creates a new http request ready to retrieve the segment
 func (k *Key) Request() (*http.Request, error) {
-	var uri string
-	var err error
-	if k.IsSession {
-		uri, err = resolveURLReference(k.masterPlaylist.URI, k.URI)
-	} else {
-		uri, err = resolveURLReference(k.mediaPlaylist.URI, k.URI)
-	}
+	uri, err := k.AbsoluteURL()
 	if err != nil {
 		return nil, fmt.Errorf("failed building resource url: %v", err)
 	}
@@ -111,6 +110,20 @@ func (k *Key) Request() (*http.Request, error) {
 		return req, fmt.Errorf("failed to construct request: %v", err)
 	}
 	return req, nil
+}
+
+// AbsoluteURL will resolve the Key URI to a absolute path, given it is a URL.
+func (k *Key) AbsoluteURL() (string, error) {
+	var uri string
+	var err error
+
+	if k.IsSession {
+		uri, err = resolveURLReference(k.masterPlaylist.URI, k.URI)
+	} else {
+		uri, err = resolveURLReference(k.mediaPlaylist.URI, k.URI)
+	}
+
+	return uri, err
 }
 
 // Equal checks whether all public fields are equal in a Key with the exception of the IV field.
@@ -163,7 +176,7 @@ func (m *Map) Equal(other *Map) bool {
 
 // Request creates a new http request ready to retrieve the segment
 func (m *Map) Request() (*http.Request, error) {
-	uri, err := resolveURLReference(m.mediaPlaylist.URI, m.URI)
+	uri, err := m.AbsoluteURL()
 	if err != nil {
 		return nil, fmt.Errorf("failed building resource url: %v", err)
 	}
@@ -173,6 +186,11 @@ func (m *Map) Request() (*http.Request, error) {
 		return req, fmt.Errorf("failed to construct request: %v", err)
 	}
 	return req, nil
+}
+
+// AbsoluteURL will resolve the EXT-X-MAP URI to a absolute path, given it is a URL.
+func (m *Map) AbsoluteURL() (string, error) {
+	return resolveURLReference(m.mediaPlaylist.URI, m.URI)
 }
 
 //DateRange represents tag #EXT-X-DATERANGE:<attribute=value>.
