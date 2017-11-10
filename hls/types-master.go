@@ -55,7 +55,7 @@ type Rendition struct {
 
 // Request creates a new http request ready to retrieve the segment
 func (r *Rendition) Request() (*http.Request, error) {
-	uri, err := resolveURLReference(r.masterPlaylist.URI, r.URI)
+	uri, err := r.AbsoluteURL()
 	if err != nil {
 		return nil, fmt.Errorf("failed building resource url: %v", err)
 	}
@@ -64,7 +64,13 @@ func (r *Rendition) Request() (*http.Request, error) {
 	if err != nil {
 		return req, fmt.Errorf("failed to construct request: %v", err)
 	}
+
 	return req, nil
+}
+
+// AbsoluteURL will resolve the rendition URI to a absolute path, given it is a URL.
+func (r *Rendition) AbsoluteURL() (string, error) {
+	return resolveURLReference(r.masterPlaylist.URI, r.URI)
 }
 
 // Variant represents the tag #EXT-X-STREAM-INF: <attribute-list> and tag #EXT-X-I-FRAME-STREAM-INF.
@@ -93,7 +99,7 @@ type Variant struct {
 
 // Request creates a new http request ready to retrieve the segment
 func (v *Variant) Request() (*http.Request, error) {
-	uri, err := resolveURLReference(v.masterPlaylist.URI, v.URI)
+	uri, err := v.AbsoluteURL()
 	if err != nil {
 		return nil, fmt.Errorf("failed building resource url: %v", err)
 	}
@@ -103,6 +109,11 @@ func (v *Variant) Request() (*http.Request, error) {
 		return req, fmt.Errorf("failed to construct request: %v", err)
 	}
 	return req, nil
+}
+
+// AbsoluteURL will resolve the variant URI to a absolute path, given it is a URL.
+func (v *Variant) AbsoluteURL() (string, error) {
+	return resolveURLReference(v.masterPlaylist.URI, v.URI)
 }
 
 // SessionData represents tag #EXT-X-SESSION-DATA.
@@ -119,7 +130,7 @@ type SessionData struct {
 
 // Request creates a new http request ready to retrieve the segment
 func (s *SessionData) Request() (*http.Request, error) {
-	uri, err := resolveURLReference(s.masterPlaylist.URI, s.URI)
+	uri, err := s.AbsoluteURL()
 	if err != nil {
 		return nil, fmt.Errorf("failed building resource url: %v", err)
 	}
@@ -129,6 +140,11 @@ func (s *SessionData) Request() (*http.Request, error) {
 		return req, fmt.Errorf("failed to construct request: %v", err)
 	}
 	return req, nil
+}
+
+// AbsoluteURL will resolve the SessionData URI to a absolute path, given it is a URL.
+func (s *SessionData) AbsoluteURL() (string, error) {
+	return resolveURLReference(s.masterPlaylist.URI, s.URI)
 }
 
 // StartPoint represents tag #EXT-X-START.

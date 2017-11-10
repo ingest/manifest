@@ -1,7 +1,9 @@
 package hls
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"net/url"
 )
 
@@ -16,6 +18,13 @@ const (
 	boolYes = "YES"
 	boolNo  = "NO"
 )
+
+// Source represents how you can fetch the components of a HLS manifest from different locations
+type Source interface {
+	Master(ctx context.Context, uri string) (*MasterPlaylist, error)
+	Media(ctx context.Context, variant *Variant) (*MediaPlaylist, error)
+	Resource(ctx context.Context, uri string) (io.ReadCloser, error)
+}
 
 func resolveURLReference(base, sub string) (string, error) {
 	ref, err := url.Parse(sub)
