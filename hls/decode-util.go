@@ -117,6 +117,9 @@ func decodeInf(line string) (*Inf, error) {
 	var err error
 	i := &Inf{}
 	index := strings.Index(line, ",")
+	if index == -1 {
+		return nil, fmt.Errorf("no comma was found when decoding #EXTINF: %s", line)
+	}
 	if i.Duration, err = strconv.ParseFloat(line[0:index], 64); err != nil {
 		return nil, err
 	}
